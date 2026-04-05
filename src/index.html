@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>River Kingdom Logic Runner</title>
+</head>
+<body>
+    <script type="module">
+        import { processSeason } from './scripts/engine.ts';
+
+
+        window['ai_edge_gallery_get_result'] = async (data) => {
+            try {
+                // Safely parse the AI's payload whether it arrives as a string or a JSON object
+                const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+                
+                const nextTurn = processSeason(parsedData.state, parsedData.orders);
+
+                return JSON.stringify({ result: nextTurn });
+            } catch (e) {
+                return JSON.stringify({ error: e.message || e.toString() });
+            }
+        };
+    </script>
+</body>
+</html>
