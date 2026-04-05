@@ -2,11 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>River Kingdom</title>
+    <title>River Kingdom Logic Runner</title>
 </head>
 <body>
-    <div id="app"></div>
-    <script type="module" src="./engine.ts"></script>
+    <script type="module">
+        import { processSeason } from './engine.ts';
+
+        window['ai_edge_gallery_get_result'] = async (data) => {
+            try {
+                // Safely parse the AI's payload whether it arrives as a string or a JSON object
+                const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+                
+                const nextTurn = processSeason(parsedData.state, parsedData.orders);
+
+                return JSON.stringify({ result: nextTurn });
+            } catch (e) {
+                return JSON.stringify({ error: e.message || e.toString() });
+            }
+        };
+    </script>
 </body>
 </html>
