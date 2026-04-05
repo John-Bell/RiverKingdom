@@ -22,10 +22,28 @@
         };
     </script>
 </head>
+<style>
+    body { font-family: sans-serif; background-color: #f4f4f9; padding: 20px; }
+    #map-container { 
+        background: #e3d5b8; /* Parchment color */
+        border: 4px solid #5c4033; 
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        font-size: 24px;
+        min-height: 200px;
+    }
+    .stats { font-size: 16px; margin-top: 10px; color: #333; }
+</style>
 <body>
+    <div id="map-container">
+        Initializing River Kingdom...
+    </div>
+    
     <script type="module">
         import { processSeason } from './scripts/engine.ts';
         window.processSeason = processSeason;
     </script>
 </body>
+
 </html>
