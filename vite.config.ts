@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/RiverKingdom/',
+  // The dot makes it a relative path!
+  base: './',
+  
   root: 'src',
   publicDir: '../public',
   build: {
