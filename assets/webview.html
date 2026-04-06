@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+            margin: 0;
+        }
+
+        #map-container {
+            background: #e3d5b8;
+            border: 4px solid #5c4033;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            min-height: 200px;
+        }
+
+        .stats {
+            font-size: 16px;
+            margin-top: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map-container">Loading Map...</div>
+
+    <script>
+        // Grab the state data from the URL query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const stateParam = urlParams.get('state');
+
+        if (stateParam) {
+            const state = JSON.parse(decodeURIComponent(stateParam));
+
+            const popCount = Math.max(0, Math.ceil(Number(state.population) / 20) || 0);
+            const riceCount = Math.max(0, Math.ceil(Number(state.storedRice) / 500) || 0);
+
+            document.getElementById('map-container').innerHTML = `
+                <div><strong>Year: ${state.year} | Season: ${state.season}</strong></div>
+                <div style="margin: 20px 0;">🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦</div>
+                <div><strong>Villagers:</strong><br/> ${"🧑‍🌾".repeat(popCount) || "💀 (Ghost Town)"}</div>
+                <div style="margin: 10px 0;"><strong>Granary:</strong><br/> ${"🌾".repeat(riceCount) || "Empty!"}</div>
+                <div class="stats">Population: ${state.population} | Stored Rice: ${state.storedRice}</div>
+            `;
+        } else {
+            document.getElementById('map-container').innerHTML = "Awaiting Imperial Orders...";
+        }
+    </script>
+</body>
+
+</html>
