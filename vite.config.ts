@@ -1,9 +1,8 @@
 import { defineConfig } from 'vite';
+import { viteSingleFile } from 'vite-plugin-singlefile';
 
 export default defineConfig({
-  // The dot makes it a relative path!
-  base: './',
-  
+  plugins: [viteSingleFile()],
   root: 'src',
   publicDir: '../public',
   build: {
