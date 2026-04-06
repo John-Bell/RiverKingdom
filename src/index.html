@@ -4,12 +4,16 @@
     <meta charset="UTF-8">
     <title>River Kingdom Logic Runner</title>
     
-    <script>
+        <script>
         window['ai_edge_gallery_get_result'] = async (data) => {
             try {
-                // Wait for the background module to finish loading the math engine
+                let attempts = 0;
                 while (typeof window.processSeason !== 'function') {
+                    if (attempts > 40) {
+                        return JSON.stringify({ error: "CRITICAL: Engine blocked by iPhone security (CORS)." });
+                    }
                     await new Promise(resolve => setTimeout(resolve, 50));
+                    attempts++;
                 }
                 
                 const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
@@ -21,6 +25,7 @@
             }
         };
     </script>
+
 </head>
 <style>
     body { font-family: sans-serif; background-color: #f4f4f9; padding: 20px; }
