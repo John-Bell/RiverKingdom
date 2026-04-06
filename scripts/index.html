@@ -1,27 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>River Kingdom</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f4f9; padding: 20px; }
-        #map-container { 
-            background: #e3d5b8; 
-            border: 4px solid #5c4033; 
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+
+        #map-container {
+            background: #e3d5b8;
+            border: 4px solid #5c4033;
             border-radius: 8px;
             padding: 20px;
             text-align: center;
             font-size: 24px;
             min-height: 200px;
         }
-        .stats { font-size: 16px; margin-top: 10px; color: #333; }
+
+        .stats {
+            font-size: 16px;
+            margin-top: 10px;
+            color: #333;
+        }
     </style>
-    
+
     <script>
         // 1. The Game Engine (Pure Vanilla JS)
         function processSeason(state, orders) {
             const totalWorkers = Number(orders.dykeWorkers) + Number(orders.fieldWorkers) + Number(orders.villageGuards);
-            
+
             if (totalWorkers > state.population) {
                 return { state: state, turnReport: `INVALID ORDERS: My Emperor, you ordered ${totalWorkers} peasants to work, but we only have ${state.population}!` };
             }
@@ -78,27 +89,39 @@
                         <div class="stats">Population: ${updatedState.population} | Stored Rice: ${updatedState.storedRice}</div>
                     `;
                 }
-            } catch(e) {}
+            } catch (e) { }
 
             return { state: updatedState, turnReport: turnReport.trim() };
         }
 
-        // 2. The Direct Bridge (Standard Global Function)
-        function ai_edge_gallery_get_result(data) {
+        window['ai_edge_gallery_get_result'] = async (data) => {
             try {
                 const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
                 const nextTurn = processSeason(parsedData.state, parsedData.orders);
-                return JSON.stringify({ result: nextTurn });
+
+                // Convert the state to a string so we can pass it in the URL
+                const stateString = encodeURIComponent(JSON.stringify(nextTurn.state));
+
+                // Return both the text result for the Vizier AND the webview for the map
+                return JSON.stringify({
+                    result: nextTurn.turnReport,
+                    webview: {
+                        url: `webview.html?state=${stateString}`,
+                        aspectRatio: 1.0
+                    }
+                });
             } catch (e) {
                 return JSON.stringify({ error: e.message || e.toString() });
             }
-        }
+        };
 
     </script>
 </head>
+
 <body>
     <div id="map-container">
         Initializing River Kingdom...
     </div>
 </body>
+
 </html>
