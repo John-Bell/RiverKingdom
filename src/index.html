@@ -18,7 +18,7 @@
     </style>
     
     <script>
-        // 1. The Game Engine
+        // 1. The Game Engine (Pure Vanilla JS)
         function processSeason(state, orders) {
             const totalWorkers = Number(orders.dykeWorkers) + Number(orders.fieldWorkers) + Number(orders.villageGuards);
             
@@ -83,8 +83,8 @@
             return { state: updatedState, turnReport: turnReport.trim() };
         }
 
-        // 2. The Direct Bridge (Synchronous, NO async keyword)
-        window.ai_edge_gallery_get_result = function(data) {
+        // 2. The Direct Bridge (Standard Global Function)
+        function ai_edge_gallery_get_result(data) {
             try {
                 const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
                 const nextTurn = processSeason(parsedData.state, parsedData.orders);
@@ -92,7 +92,8 @@
             } catch (e) {
                 return JSON.stringify({ error: e.message || e.toString() });
             }
-        };
+        }
+
     </script>
 </head>
 <body>
