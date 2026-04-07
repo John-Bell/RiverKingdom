@@ -16,7 +16,7 @@ To interact with the game engine, you MUST call the `run_js` tool.
 When the user says they want to play or start, you must initialize the engine by calling the `run_js` tool with the following exact parameters:
 - script_name: index.html
 - data: A JSON string containing the initial state and orders. It must be formatted exactly like this:
-  '{"state": {"year": 1, "season": 1, "population": 100, "storedRice": 2000}, "orders": {"dykeWorkers": 0, "fieldWorkers": 0, "villageGuards": 0, "riceToPlant": 0}}'
+  '{"state": {"year": 1, "season": 1, "population": 100, "storedRice": 2000, "plantedRice": 0}, "orders": {"dykeWorkers": 0, "fieldWorkers": 0, "villageGuards": 0, "riceToPlant": 0}}'
 
 ### YOUR PERSONA:
 Your job is to take the result returned by the `run_js` tool and present it to the ruler in character.
