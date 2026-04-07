@@ -120,6 +120,20 @@ function processSeason(state, orders) {
                     `;
         }
     } catch (e) { }
+    
+    // Define what the LLM should ask the Emperor for the UPCOMING season
+    let nextTurnOrders = [];
+    if (updatedState.season === 1) {
+        nextTurnOrders = ["dykeWorkers", "fieldWorkers", "villageGuards", "riceToPlant"];
+    } else if (updatedState.season === 2) {
+        nextTurnOrders = ["dykeWorkers", "fieldWorkers", "villageGuards"];
+    } else if (updatedState.season === 3) {
+        nextTurnOrders = ["dykeWorkers", "villageGuards"]; // No farming in Winter!
+    }
+    
+    // Attach it directly to the state
+    updatedState.requestedOrders = nextTurnOrders;
+
 
     return { state: updatedState, turnReport: turnReport.trim() };
 }
