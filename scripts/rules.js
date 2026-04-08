@@ -80,20 +80,20 @@ function processSeason(state, orders) {
     }
 
     // 4. SURVIVAL: Now the villagers eat
-    const requiredRice = updatedState.population * 20;
+    const requiredRice = updatedState.population * 5; // Fixed the math! 5 per season.
     let starved = 0;
 
     if (updatedState.storedRice >= requiredRice) {
         updatedState.storedRice -= requiredRice;
+        turnReport += `\n🍲 The village consumed ${requiredRice} sacks of rice and is well-fed. `;
     } else {
         const deficit = requiredRice - updatedState.storedRice;
-        starved = Math.ceil(deficit / 20);
+        starved = Math.ceil(deficit / 5);
         updatedState.population -= starved;
+        turnReport += `\n💀 We only had ${updatedState.storedRice} rice, but needed ${requiredRice}. ${starved} peasants starved to death! `;
         updatedState.storedRice = 0;
     }
 
-    if (starved > 0) turnReport += `\n💀 ${starved} peasants starved to death! `;
-    else turnReport += `\n🍲 The village is well-fed. `;
 
     // 5. TIME MARCHES ON
     updatedState.season++;
