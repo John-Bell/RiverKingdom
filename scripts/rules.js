@@ -80,12 +80,19 @@ function processSeason(state, orders) {
     }
 
     // 4. SURVIVAL: Now the villagers eat
-    const requiredRice = updatedState.population * 5; // Fixed the math! 5 per season.
+    const requiredRice = updatedState.population * 5; 
     let starved = 0;
 
     if (updatedState.storedRice >= requiredRice) {
         updatedState.storedRice -= requiredRice;
         turnReport += `\n🍲 The village consumed ${requiredRice} sacks of rice and is well-fed. `;
+        
+        // NEW: Population Growth! (Roughly 2% to 6% growth if well-fed)
+        let growthRate = (Math.random() * 0.04) + 0.02;
+        let newVillagers = Math.floor(updatedState.population * growthRate) + 1; 
+        updatedState.population += newVillagers;
+        turnReport += `News of our full granaries has spread! ${newVillagers} wandering peasants have joined our village.`;
+        
     } else {
         const deficit = requiredRice - updatedState.storedRice;
         starved = Math.ceil(deficit / 5);
