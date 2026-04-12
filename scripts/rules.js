@@ -11,14 +11,23 @@ function processSeason(state, orders) {
 
     // 1. SPRING (Season 1): Planting & Floods
     if (updatedState.season === 1) {
+        // Check if we have enough rice in the granary
         if (orders.riceToPlant > updatedState.storedRice) {
             return { state: state, turnReport: `INVALID ORDERS: My Emperor, you commanded us to plant ${orders.riceToPlant} rice, but we only have ${updatedState.storedRice}!` };
         }
+        
+        // NEW: Enforce planting capacity! (1 worker can plant 50 sacks)
+        const maxPlantingCapacity = orders.fieldWorkers * 50;
+        if (orders.riceToPlant > maxPlantingCapacity) {
+            return { state: state, turnReport: `INVALID ORDERS: My Emperor, our ${orders.fieldWorkers} field workers can only plant a maximum of ${maxPlantingCapacity} sacks of rice!` };
+        }
+
+        // Apply the planting to the state
         updatedState.storedRice -= orders.riceToPlant;
         updatedState.plantedRice = orders.riceToPlant;
 
         if (orders.riceToPlant > 0) {
-            turnReport += `We planted ${orders.riceToPlant} sacks of rice. `;
+            turnReport += `Our ${orders.fieldWorkers} field workers planted ${orders.riceToPlant} sacks of rice. `;
         }
 
         // HAZARD: Floods (30% chance in Spring)
@@ -39,23 +48,6 @@ function processSeason(state, orders) {
         }
     }
 
-    // 2. AUTUMN (Season 2): Harvesting
-    if (updatedState.season === 2) {
-        let plantedAmount = updatedState.plantedRice || 0;
-
-        let baseYield = plantedAmount * 3;
-        let maxYield = orders.fieldWorkers * 50;
-        let finalYield = Math.min(baseYield, maxYield);
-
-        updatedState.storedRice += finalYield;
-        if (finalYield > 0) {
-            turnReport += `The harvest yielded ${finalYield} sacks of rice. `;
-        } else if (plantedAmount > 0 && orders.fieldWorkers === 0) {
-            turnReport += `⚠️ DISASTER! We planted rice but assigned no field workers to harvest it. It all rotted in the fields! `;
-        }
-
-        updatedState.plantedRice = 0;
-    }
 
     // 3. WINTER (Season 3): Thieves
     if (updatedState.season === 3) {
