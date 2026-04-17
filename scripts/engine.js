@@ -2,53 +2,56 @@ window['ai_edge_gallery_get_result'] = async (data) => {
     try {
         const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
 
-        // --- 1. LOAD SAVED GAME ---
+        // --- COMBINED LOAD / AUTO-INIT ---
         if (parsedData.action === "load") {
             const savedData = localStorage.getItem('riverKingdomSave');
             if (savedData) {
+                // Load existing game
                 const loadedState = JSON.parse(savedData);
                 const stateString = encodeURIComponent(JSON.stringify(loadedState));
                 const systemStateString = JSON.stringify(loadedState);
 
                 return JSON.stringify({
-                    result: `The royal archives have been retrieved! Welcome back, Emperor. We are currently in Year ${loadedState.year}, Season ${loadedState.season}.\n\n[HIDDEN SYSTEM STATE FOR NEXT TURN: ${systemStateString}]`,
-                    webview: {
-                        url: `webview.html?state=${stateString}`,
-                        aspectRatio: 1.333
-                    }
+                    result: `I found the records of your village. We are in Year ${loadedState.year}, Season ${loadedState.season}. Let us see how badly you are managing things today.\n\n[HIDDEN SYSTEM STATE FOR NEXT TURN: ${systemStateString}]`,
+                    webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
                 });
             } else {
+                // Auto-start new game if no save exists
+                const initState = {
+                    year: 1, season: 1, population: 100, storedRice: 1200, plantedRice: 0,
+                    requiredQuestion: "How many dyke workers, field workers, village guards, and sacks of rice to plant shall we allocate, Your Highness?"
+                };
+                localStorage.setItem('riverKingdomSave', JSON.stringify(initState));
+                
+                const stateString = encodeURIComponent(JSON.stringify(initState));
+                const systemStateString = JSON.stringify(initState);
+                
                 return JSON.stringify({
-                    result: "My Emperor, the royal archives are empty! There is no saved kingdom to resume. Shall we start a new one?",
+                    result: `Your father, the Emperor, has dumped this pitiful patch of dirt into your lap. Try not to starve everyone immediately.\n\n[HIDDEN SYSTEM STATE FOR NEXT TURN: ${systemStateString}]`,
+                    webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
                 });
             }
         }
-            
-        // --- 2. INITIALIZATION PHASE (NEW GAME) ---
+
+        // --- EXPLICIT NEW GAME (Overwrites Save) ---
         if (parsedData.action === "init") {
             const initState = {
-                year: Number(parsedData.year) || 1,
-                season: Number(parsedData.season) || 1,
-                population: Number(parsedData.population) || 100,
-                storedRice: Number(parsedData.storedRice) || 1200,
-                plantedRice: Number(parsedData.plantedRice) || 0,
-                requiredQuestion: "How many dyke workers, field workers, village guards, and sacks of rice to plant shall we allocate?"
+                year: 1, season: 1, population: 100, storedRice: 1200, plantedRice: 0,
+                requiredQuestion: "How many dyke workers, field workers, village guards, and sacks of rice to plant shall we allocate, Your Highness?"
             };
-
-            // Overwrite any old save with this new game
             localStorage.setItem('riverKingdomSave', JSON.stringify(initState));
             
             const stateString = encodeURIComponent(JSON.stringify(initState));
             const systemStateString = JSON.stringify(initState);
             
             return JSON.stringify({
-                result: `The Kingdom is established. Awaiting the Emperor's first command.\n\n[HIDDEN SYSTEM STATE FOR NEXT TURN: ${systemStateString}]`,
-                webview: {
-                    url: `webview.html?state=${stateString}`,
-                    aspectRatio: 1.333
-                }
+                result: `You burned the last village to the ground. Your father has graciously given you another one. Please do better.\n\n[HIDDEN SYSTEM STATE FOR NEXT TURN: ${systemStateString}]`,
+                webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
             });
         }
+        
+        // ... (Keep the rest of your normal turn processing below)
+
 
         // --- 3. NORMAL TURN PROCESSING ---
         const nextTurn = processSeason(parsedData);
