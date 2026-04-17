@@ -87,27 +87,36 @@ function processSeason(flatData) {
 
     // 3. WINTER (Season 3): Thieves
     if (updatedState.season === 3) {
-        // HAZARD: Bandits (40% chance in Winter)
-        if (Math.random() < 0.4) {
-            let thiefStrength = Math.floor(Math.random() * 30) + 5; 
+        // HAZARD: Bandits (Increased to 60% chance)
+        if (Math.random() < 0.6) {
+            let thiefStrength = Math.floor(Math.random() * 50) + 20; // Massive buff: Strength between 20 and 70
             if (safeOrders.villageGuards < thiefStrength) {
                 let stolenMultiplier = thiefStrength - safeOrders.villageGuards;
-                let stolenRice = stolenMultiplier * 25;
+                let stolenRice = stolenMultiplier * 50; // They now steal 50 sacks per uncontested bandit!
 
                 stolenRice = Math.min(stolenRice, updatedState.storedRice);
                 updatedState.storedRice -= stolenRice;
 
                 if (stolenRice > 0) {
-                    turnReport += `\n🗡️ BANDITS! Thieves attacked the granary in the dead of winter! The guards were outnumbered, and ${stolenRice} sacks of rice were stolen! `;
+                    turnReport += `\n🗡️ BANDIT RAID! A massive horde of winter raiders breached the granary! Our guards were slaughtered and ${stolenRice} sacks of rice were looted! `;
                 }
             } else {
-                turnReport += `\n🛡️ Bandits probed our defenses, but our ${safeOrders.villageGuards} village guards drove them off! `;
+                turnReport += `\n🛡️ A horde of bandits attacked, but our ${safeOrders.villageGuards} guards held the line! `;
             }
         }
     }
 
     // 4. SURVIVAL: Now the villagers eat
+    
+    // THE CATCH-UP MECHANIC: Refugees
+    if (updatedState.population < 40 && updatedState.population > 0) {
+        let refugees = Math.floor(Math.random() * 20) + 10; // 10 to 30 new workers
+        updatedState.population += refugees;
+        turnReport += `\n⛺️ Desperate refugees (${refugees}) fleeing famine elsewhere have arrived! We have hands to work, but more mouths to feed! `;
+    }
+
     const requiredRice = updatedState.population * 5; 
+
     let starved = 0;
 
     if (updatedState.storedRice >= requiredRice) {
