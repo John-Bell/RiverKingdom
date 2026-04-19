@@ -51,28 +51,26 @@ function processSeason(flatData) {
         updatedState.plantedRice = safeOrders.riceToPlant;
 
         if (safeOrders.riceToPlant > 0) {
-            turnReport += `Your ${safeOrders.fieldWorkers} field planted ${safeOrders.riceToPlant} sacks of rice. `;
+            turnReport += `Your ${safeOrders.fieldWorkers} field workers planted ${safeOrders.riceToPlant} sacks of rice. `;
         }
 
-        // LEVEL 2 HAZARD: Floods (Requires Pop >= 115)
-        if (updatedState.population >= 115) {
-            if (Math.random() < 0.3) {
-                // THE FIX: Floods scale with population sprawl. Base 10-50, plus 25% of population.
-                let sprawlPenalty = Math.floor(updatedState.population * 0.25);
-                let floodStrength = Math.floor(Math.random() * 40) + 10 + sprawlPenalty; 
-                
-                if (safeOrders.dykeWorkers < floodStrength) {
-                    let damage = floodStrength - safeOrders.dykeWorkers;
-                    let drowned = Math.floor(damage / 2);
-                    let washedAway = damage * 5;
+        // LEVEL 2 HAZARD: Floods (Always Active)
+        if (Math.random() < 0.3) {
+            // Floods scale with population sprawl. Base 10-50, plus 25% of population.
+            let sprawlPenalty = Math.floor(updatedState.population * 0.25);
+            let floodStrength = Math.floor(Math.random() * 40) + 10 + sprawlPenalty; 
+            
+            if (safeOrders.dykeWorkers < floodStrength) {
+                let damage = floodStrength - safeOrders.dykeWorkers;
+                let drowned = Math.floor(damage / 2);
+                let washedAway = damage * 5;
 
-                    updatedState.population = Math.max(0, updatedState.population - drowned);
-                    updatedState.plantedRice = Math.max(0, updatedState.plantedRice - washedAway);
+                updatedState.population = Math.max(0, updatedState.population - drowned);
+                updatedState.plantedRice = Math.max(0, updatedState.plantedRice - washedAway);
 
-                    turnReport += `\n⚠️ THE RIVER WAKES! The flood overwhelmed your dyke workers! ${drowned} drowned and ${washedAway} seeds washed away. A brilliant start to the year! `;
-                } else {
-                    turnReport += `\n🌊 The river rose, but your ${safeOrders.dykeWorkers} dyke workers held it back. A rare success! `;
-                }
+                turnReport += `\n⚠️ THE RIVER WAKES! The flood overwhelmed your dyke workers! ${drowned} drowned and ${washedAway} seeds washed away. A brilliant start to the year! `;
+            } else {
+                turnReport += `\n🌊 The river rose, but your ${safeOrders.dykeWorkers} dyke workers held it back. A rare success! `;
             }
         } else if (safeOrders.dykeWorkers > 0) {
             turnReport += `\n🙄 You assigned ${safeOrders.dykeWorkers} peasants to guard a perfectly calm stream. A brilliant waste of labor. `;
@@ -83,7 +81,7 @@ function processSeason(flatData) {
     if (updatedState.season === 2) {
         let plantedAmount = updatedState.plantedRice || 0;
 
-        // THE FIX: RNG Yield Multiplier (between 3x and 7x)
+        // RNG Yield Multiplier (between 3x and 7x)
         let yieldMultiplier = Math.floor(Math.random() * 5) + 3; 
         let baseYield = plantedAmount * yieldMultiplier;
         
@@ -102,26 +100,24 @@ function processSeason(flatData) {
 
     // 3. WINTER (Season 3): Thieves
     if (updatedState.season === 3) {
-        // LEVEL 3 HAZARD: Bandits (Requires Pop >= 130)
-        if (updatedState.population >= 130) {
-            if (Math.random() < 0.6) {
-                // THE FIX: Bandits scale with your wealth! Base 20-70, plus 2% of stored rice.
-                let wealthPenalty = Math.floor(updatedState.storedRice * 0.02); 
-                let thiefStrength = Math.floor(Math.random() * 50) + 20 + wealthPenalty; 
-                
-                if (safeOrders.villageGuards < thiefStrength) {
-                    let stolenMultiplier = thiefStrength - safeOrders.villageGuards;
-                    let stolenRice = stolenMultiplier * 50; 
+        // LEVEL 3 HAZARD: Bandits (Always Active)
+        if (Math.random() < 0.6) {
+            // Bandits scale with your wealth! Base 20-70, plus 2% of stored rice.
+            let wealthPenalty = Math.floor(updatedState.storedRice * 0.02); 
+            let thiefStrength = Math.floor(Math.random() * 50) + 20 + wealthPenalty; 
+            
+            if (safeOrders.villageGuards < thiefStrength) {
+                let stolenMultiplier = thiefStrength - safeOrders.villageGuards;
+                let stolenRice = stolenMultiplier * 50; 
 
-                    stolenRice = Math.min(stolenRice, updatedState.storedRice);
-                    updatedState.storedRice -= stolenRice;
+                stolenRice = Math.min(stolenRice, updatedState.storedRice);
+                updatedState.storedRice -= stolenRice;
 
-                    if (stolenRice > 0) {
-                        turnReport += `\n🗡️ BANDITS! Thieves smelled our wealth and attacked! Your guards failed, and ${stolenRice} sacks of rice were looted! `;
-                    }
-                } else {
-                    turnReport += `\n🛡️ Bandits attacked, but your ${safeOrders.villageGuards} guards actually did their jobs and held the line! `;
+                if (stolenRice > 0) {
+                    turnReport += `\n🗡️ BANDITS! Thieves smelled our wealth and attacked! Your guards failed, and ${stolenRice} sacks of rice were looted! `;
                 }
+            } else {
+                turnReport += `\n🛡️ Bandits attacked, but your ${safeOrders.villageGuards} guards actually did their jobs and held the line! `;
             }
         } else if (safeOrders.villageGuards > 0) {
             turnReport += `\n🙄 You posted ${safeOrders.villageGuards} guards in the freezing snow to protect our pitiful village from imaginary thieves. Masterful strategy, Your Highness. `;
@@ -139,7 +135,7 @@ function processSeason(flatData) {
         turnReport += `\n⛺️ Desperate refugees (${refugees}) have arrived, bringing ${refugeeRice} sacks of scavenged rice. Try not to kill these ones. `;
     }
 
-    // THE FIX: Lowered consumption from 5 to 2 per person per season
+    // Lowered consumption to 2 per person per season
     const requiredRice = updatedState.population * 2; 
     let starved = 0;
 
@@ -154,13 +150,11 @@ function processSeason(flatData) {
         
     } else {
         const deficit = requiredRice - updatedState.storedRice;
-        // THE FIX: Make sure the starvation rate matches the new consumption rate (divided by 2)
         starved = Math.ceil(deficit / 2);
         updatedState.population -= starved;
         turnReport += `\n💀 We needed ${requiredRice} rice but had ${updatedState.storedRice}. ${starved} peasants starved to death. A tragic day for the kingdom. `;
         updatedState.storedRice = 0;
     }
-
 
     // 5. SURVIVAL & TIME MARCHES ON (Permadeath)
     if (updatedState.population <= 0) {
@@ -175,14 +169,6 @@ function processSeason(flatData) {
         }
         const seasonNames = { 1: "Growing", 2: "Harvest", 3: "Winter" };
         turnReport += `\n\nThe upcoming season is ${updatedState.season} (${seasonNames[updatedState.season]}).`;
-        
-        // --- NEW: SCOUT WARNINGS ---
-        if (updatedState.population >= 110 && updatedState.population < 125) {
-            turnReport += `\n🌊 VIZIER'S WARNING: Our population sprawls dangerously close to the riverbanks. We will soon need Dyke Workers during the Spring.`;
-        }
-        if (updatedState.population >= 125 && updatedState.population < 140) {
-            turnReport += `\n🗡️ VIZIER'S WARNING: Our growing village has attracted the attention of mountain bandits. We will soon need Village Guards during the Winter.`;
-        }
     }
 
     // Draw the map
@@ -211,31 +197,13 @@ function processSeason(flatData) {
     
     // Define the exact plain-English question the LLM MUST ask
     let requiredQuestion = "";
-    
-    // Check if hazards are active based on population
-    const floodsActive = updatedState.population >= 115;
-    const banditsActive = updatedState.population >= 130;
 
-    if (updatedState.season === 1) {
-        if (!floodsActive && !banditsActive) {
-            requiredQuestion = "How many field workers and sacks of rice to plant shall we allocate? (The river is calm and bandits ignore us. Just assign 0 to dykes and guards).";
-        } else if (floodsActive && !banditsActive) {
-            requiredQuestion = "How many dyke workers, field workers, and sacks of rice to plant shall we allocate? (Assign 0 to guards).";
-        } else {
-            requiredQuestion = "How many dyke workers, field workers, village guards, and sacks of rice to plant shall we allocate, Your Highness?";
-        }
-    } else if (updatedState.season === 2) {
-        if (!banditsActive) {
-            requiredQuestion = "How many field workers shall we allocate for the harvest? (Assign 0 to dykes and guards).";
-        } else {
-            requiredQuestion = "How many dyke workers, field workers, and village guards shall we allocate, Your Highness?";
-        }
-    } else if (updatedState.season === 3) {
-        if (!banditsActive) {
-            requiredQuestion = "It is Winter. The fields are frozen and no bandits threaten us. (Just assign 0 to all workers and skip the turn).";
-        } else {
-             requiredQuestion = "How many dyke workers and village guards shall we allocate, Your Highness? (Remember, no farming in winter).";
-        }
+    if (updatedState.season === 1) { // SPRING
+        requiredQuestion = "The river thaws and bandits are always watching. How many dyke workers, field workers, village guards, and sacks of rice to plant shall we allocate, Your Highness?";
+    } else if (updatedState.season === 2) { // AUTUMN
+        requiredQuestion = "It is harvest time. How many dyke workers, field workers, and village guards shall we allocate to gather whatever pitiful crop survived?";
+    } else if (updatedState.season === 3) { // WINTER
+        requiredQuestion = "Winter is upon us. How many dyke workers and village guards shall we post to defend our miserable stockpile? Do not attempt to farm in the snow.";
     }
     
     let nextStateForLLM = {
