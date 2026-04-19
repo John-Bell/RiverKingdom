@@ -80,13 +80,16 @@ function processSeason(flatData) {
     if (updatedState.season === 2) {
         let plantedAmount = updatedState.plantedRice || 0;
 
-        let baseYield = plantedAmount * 3;
+        // THE FIX: RNG Yield Multiplier (between 3x and 7x)
+        let yieldMultiplier = Math.floor(Math.random() * 5) + 3; 
+        let baseYield = plantedAmount * yieldMultiplier;
+        
         let maxYield = safeOrders.fieldWorkers * 50;
         let finalYield = Math.min(baseYield, maxYield);
 
         updatedState.storedRice += finalYield;
         if (finalYield > 0) {
-            turnReport += `The harvest yielded ${finalYield} sacks of rice. `;
+            turnReport += `The harvest yielded ${finalYield} sacks of rice (a ${yieldMultiplier}x return!). `;
         } else if (plantedAmount > 0 && safeOrders.fieldWorkers === 0) {
             turnReport += `⚠️ DISASTER! You planted rice but assigned no field workers to harvest it. It all rotted. Your father will be thrilled. `;
         }
@@ -130,7 +133,8 @@ function processSeason(flatData) {
         turnReport += `\n⛺️ Desperate refugees (${refugees}) have arrived, bringing ${refugeeRice} sacks of scavenged rice. Try not to kill these ones. `;
     }
 
-    const requiredRice = updatedState.population * 5; 
+    // THE FIX: Lowered consumption from 5 to 2 per person per season
+    const requiredRice = updatedState.population * 2; 
     let starved = 0;
 
     if (updatedState.storedRice >= requiredRice) {
@@ -144,7 +148,8 @@ function processSeason(flatData) {
         
     } else {
         const deficit = requiredRice - updatedState.storedRice;
-        starved = Math.ceil(deficit / 5);
+        // THE FIX: Make sure the starvation rate matches the new consumption rate (divided by 2)
+        starved = Math.ceil(deficit / 2);
         updatedState.population -= starved;
         turnReport += `\n💀 We needed ${requiredRice} rice but had ${updatedState.storedRice}. ${starved} peasants starved to death. A tragic day for the kingdom. `;
         updatedState.storedRice = 0;
