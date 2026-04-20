@@ -195,21 +195,22 @@ function processSeason(flatData) {
         }
     } catch (e) { }
     
-    // Define the exact plain-English question the LLM MUST ask
-    let requiredQuestion = "";
+    // Define the available actions for the LLM to use to write its own prompt
+    let availableActions = "";
 
     if (updatedState.season === 1) { // SPRING
-        requiredQuestion = "The river thaws and bandits are always watching. How many dyke workers, field workers, village guards, and sacks of rice to plant shall we allocate, Your Highness?";
+        availableActions = "Roles available: dyke workers, field workers, village guards, and sacks of rice to plant.";
     } else if (updatedState.season === 2) { // AUTUMN
-        requiredQuestion = "It is harvest time. How many dyke workers, field workers, and village guards shall we allocate to gather whatever pitiful crop survived?";
+        availableActions = "Roles available: dyke workers, field workers, and village guards.";
     } else if (updatedState.season === 3) { // WINTER
-        requiredQuestion = "Winter is upon us. How many dyke workers and village guards shall we post to defend our miserable stockpile? Do not attempt to farm in the snow.";
+        availableActions = "Roles available: dyke workers and village guards (No farming in Winter).";
     }
     
     let nextStateForLLM = {
         ...updatedState,
-        requiredQuestion: requiredQuestion
+        availableActions: availableActions
     };
 
     return { nextStateForLLM: nextStateForLLM, stateForUI: updatedState, turnReport: turnReport.trim() };
+
 }
