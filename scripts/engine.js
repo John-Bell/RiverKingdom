@@ -11,20 +11,20 @@ window['ai_edge_gallery_get_result'] = async (data) => {
                 const stateString = encodeURIComponent(JSON.stringify(loadedState));
 
                 return JSON.stringify({
-                    result: `I found the records of your village. We are in Year ${loadedState.year}, Season ${loadedState.season}. Let us see how badly you are managing things today.\n\nDATA FOR VIZIER:\nYear: ${loadedState.year} | Season: ${loadedState.season} | Population: ${loadedState.population} | Stored Rice: ${loadedState.storedRice}\nQuestion: ${loadedState.requiredQuestion}`,
+                    result: `I found the records of your village. We are in Year ${loadedState.year}, Season ${loadedState.season}. Let us see how badly you are managing things today.\n\nDATA FOR VIZIER:\nYear: ${loadedState.year} | Season: ${loadedState.season} | Population: ${loadedState.population} | Stored Rice: ${loadedState.storedRice}\nAvailable Actions: ${loadedState.availableActions}`,
                     webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
                 });
             } else {
                 // Auto-start new game if no save exists
                 const initState = {
                     year: 1, season: 1, population: 100, storedRice: 1200, plantedRice: 0,
-                    requiredQuestion: "How many dyke workers, field workers, village guards, and sacks of rice to plant shall we allocate, Your Highness?"
+                    availableActions: "Roles available: dyke workers, field workers, village guards, and sacks of rice to plant."
                 };
                 localStorage.setItem('riverKingdomSave', JSON.stringify(initState));
                 const stateString = encodeURIComponent(JSON.stringify(initState));
                 
                 return JSON.stringify({
-                    result: `Your father, the Emperor, has dumped this pitiful patch of dirt into your lap. Try not to starve everyone immediately.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nQuestion: ${initState.requiredQuestion}`,
+                    result: `Your father, the Emperor, has dumped this pitiful patch of dirt into your lap. Try not to starve everyone immediately.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: ${initState.availableActions}`,
                     webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
                 });
             }
@@ -34,13 +34,13 @@ window['ai_edge_gallery_get_result'] = async (data) => {
         if (parsedData.action === "init") {
             const initState = {
                 year: 1, season: 1, population: 100, storedRice: 1200, plantedRice: 0,
-                requiredQuestion: "How many dyke workers, field workers, village guards, and sacks of rice to plant shall we allocate, Your Highness?"
+                availableActions: "Roles available: dyke workers, field workers, village guards, and sacks of rice to plant."
             };
             localStorage.setItem('riverKingdomSave', JSON.stringify(initState));
             const stateString = encodeURIComponent(JSON.stringify(initState));
             
             return JSON.stringify({
-                result: `You burned the last village to the ground. Your father has graciously given you another one. Please do better.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nQuestion: ${initState.requiredQuestion}`,
+                result: `You burned the last village to the ground. Your father has graciously given you another one. Please do better.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: ${initState.availableActions}`,
                 webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
             });
         }
@@ -73,7 +73,7 @@ window['ai_edge_gallery_get_result'] = async (data) => {
 
         // Return clean JSON without the hidden state baggage, but WITH the new stats for the LLM to read
         return JSON.stringify({
-            result: `${nextTurn.turnReport}\n\nDATA FOR VIZIER:\nYear: ${nextTurn.nextStateForLLM.year} | Season: ${nextTurn.nextStateForLLM.season} | Population: ${nextTurn.nextStateForLLM.population} | Stored Rice: ${nextTurn.nextStateForLLM.storedRice}\nQuestion: ${nextTurn.nextStateForLLM.requiredQuestion}`,
+            result: `${nextTurn.turnReport}\n\nDATA FOR VIZIER:\nYear: ${nextTurn.nextStateForLLM.year} | Season: ${nextTurn.nextStateForLLM.season} | Population: ${nextTurn.nextStateForLLM.population} | Stored Rice: ${nextTurn.nextStateForLLM.storedRice}\nAvailable Actions: ${nextTurn.nextStateForLLM.availableActions}`,
             webview: {
                 url: `webview.html?state=${stateString}`,
                 aspectRatio: 1.333
