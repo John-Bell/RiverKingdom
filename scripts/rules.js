@@ -76,10 +76,13 @@ function processSeason(flatData) {
         updatedState.plantedRice = 0;
     }
 
-    // --- 3. HAZARDS (Always Active Every Season) ---
+    // --- 3. HAZARDS (Dynamic Seasonal Chances) ---
 
     // LEVEL 2 HAZARD: Floods 
-    if (Math.random() < 0.3) {
+    // 30% in Spring, 10% other seasons
+    let floodChance = updatedState.season === 1 ? 0.30 : 0.10;
+    
+    if (Math.random() < floodChance) {
         // Floods scale with population sprawl. Base 10-50, plus 25% of population.
         let sprawlPenalty = Math.floor(updatedState.population * 0.25);
         let floodStrength = Math.floor(Math.random() * 40) + 10 + sprawlPenalty; 
@@ -101,7 +104,15 @@ function processSeason(flatData) {
     }
 
     // LEVEL 3 HAZARD: Bandits 
-    if (Math.random() < 0.6) {
+    // 30% in Winter, 10% base otherwise. 
+    let thiefChance = updatedState.season === 3 ? 0.30 : 0.10;
+    
+    // Massive surplus check: If you have 10x the rice your population consumes, thieves notice.
+    if (updatedState.storedRice > (updatedState.population * 10)) {
+        thiefChance += 0.30; 
+    }
+
+    if (Math.random() < thiefChance) {
         // Bandits scale with your wealth! Base 20-70, plus 2% of stored rice.
         let wealthPenalty = Math.floor(updatedState.storedRice * 0.02); 
         let thiefStrength = Math.floor(Math.random() * 50) + 20 + wealthPenalty; 
