@@ -11,7 +11,7 @@ window['ai_edge_gallery_get_result'] = async (data) => {
                 const stateString = encodeURIComponent(JSON.stringify(loadedState));
 
                 return JSON.stringify({
-                    result: `I found the records of your village. We are in Year ${loadedState.year}, Season ${loadedState.season}. Let us see how badly you are managing things today.\n\nDATA FOR VIZIER:\nYear: ${loadedState.year} | Season: ${loadedState.season} | Population: ${loadedState.population} | Stored Rice: ${loadedState.storedRice}\nAvailable Actions: ${loadedState.availableActions}`,
+                    result: `I found the records of your village, my Prince. We are in Year ${loadedState.year}, Season ${loadedState.season}. The village awaits your brilliant commands.\n\nDATA FOR VIZIER:\nYear: ${loadedState.year} | Season: ${loadedState.season} | Population: ${loadedState.population} | Stored Rice: ${loadedState.storedRice}\nAvailable Actions: ${loadedState.availableActions}`,
                     webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
                 });
             } else {
@@ -24,7 +24,7 @@ window['ai_edge_gallery_get_result'] = async (data) => {
                 const stateString = encodeURIComponent(JSON.stringify(initState));
                 
                 return JSON.stringify({
-                    result: `Your father, the Emperor, has dumped this pitiful patch of dirt into your lap. Try not to starve everyone immediately.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: ${initState.availableActions}`,
+                    result: `Your father, the Emperor, has entrusted you with a new village. I am eager to witness your strategic genius, my Prince.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: ${initState.availableActions}`,
                     webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
                 });
             }
@@ -40,7 +40,7 @@ window['ai_edge_gallery_get_result'] = async (data) => {
             const stateString = encodeURIComponent(JSON.stringify(initState));
             
             return JSON.stringify({
-                result: `You burned the last village to the ground. Your father has graciously given you another one. Please do better.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: ${initState.availableActions}`,
+                result: `A fresh village has been established for you by the Emperor. I await your flawless leadership.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: ${initState.availableActions}`,
                 webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
             });
         }

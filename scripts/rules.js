@@ -145,8 +145,6 @@ function executeHazards(state, orders) {
         } else {
             report += `\n🌊 The river rose, but your ${orders.dykeWorkers} dyke workers held it back. `;
         }
-    } else if (orders.dykeWorkers > 0) {
-        report += `\n🙄 You assigned ${orders.dykeWorkers} peasants to guard a perfectly calm stream. `;
     }
 
     // -- BANDITS --
@@ -172,8 +170,6 @@ function executeHazards(state, orders) {
         } else {
             report += `\n🛡️ Bandits attacked, but your ${orders.villageGuards} guards held the line! `;
         }
-    } else if (orders.villageGuards > 0) {
-        report += `\n🙄 You posted ${orders.villageGuards} guards to protect against imaginary thieves. `;
     }
 
     return report;
