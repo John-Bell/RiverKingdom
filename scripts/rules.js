@@ -9,20 +9,20 @@ const GAME_CONFIG = {
     YIELD_MAX_MULTIPLIER: 7,
     
     // Starvation Cap
-    MAX_STARVATION_PCT: 0.60, // Maximum 60% of population can starve in one season
+    MAX_STARVATION_PCT: 0.60, 
     
     // Floods
-    FLOOD_CHANCE_SPRING: 0.30,
-    FLOOD_CHANCE_BASE: 0.10,
-    FLOOD_MAX_POP_LOSS_PCT: 0.20, // At worst (0 workers), lose 20% of population
-    FLOOD_MAX_SEED_LOSS_PCT: 0.40, // At worst, lose 40% of planted seeds
+    FLOOD_CHANCE_SPRING: 0.20,     // Reduced from 30%
+    FLOOD_CHANCE_BASE: 0.05,       // Reduced from 10%
+    FLOOD_MAX_POP_LOSS_PCT: 0.15,  // Reduced from 20%
+    FLOOD_MAX_SEED_LOSS_PCT: 0.30, // Reduced from 40%
     
     // Bandits
-    BANDIT_CHANCE_WINTER: 0.30,
-    BANDIT_CHANCE_BASE: 0.10,
-    BANDIT_HOARD_THRESHOLD: 10,    // Having 10x required food triggers hoard penalty
-    BANDIT_HOARD_PENALTY: 0.30,    // +30% chance of bandits if hoarding
-    BANDIT_MAX_RICE_LOSS_PCT: 0.30 // At worst (0 guards), lose 30% of stored rice
+    BANDIT_CHANCE_WINTER: 0.20,    // Reduced from 30%
+    BANDIT_CHANCE_BASE: 0.05,      // Reduced from 10%
+    BANDIT_HOARD_THRESHOLD: 10,    
+    BANDIT_HOARD_PENALTY: 0.30,    
+    BANDIT_MAX_RICE_LOSS_PCT: 0.15 // Reduced from 30%
 };
 
 // ==========================================
@@ -34,7 +34,6 @@ function processSeason(flatData) {
 
     const totalWorkers = orders.dykeWorkers + orders.fieldWorkers + orders.villageGuards;
 
-    // Validate worker count
     if (totalWorkers > state.population) {
         let failState = { ...state, requiredQuestion: flatData.requiredQuestion || "" };
         return formatResponse(failState, state, `INVALID ORDERS: My Prince, you ordered ${totalWorkers} peasants to work, but we only have ${state.population}. Are you counting ghosts?`);
@@ -42,22 +41,13 @@ function processSeason(flatData) {
 
     let turnReport = "";
 
-    // 1. Season Specific Work (Planting / Harvesting)
     turnReport += executeSeasonWork(state, orders);
-
-    // 2. Hazards (Floods & Bandits)
     turnReport += executeHazards(state, orders);
-
-    // 3. Survival (Eating & Starvation)
     turnReport += executeSurvival(state);
-
-    // 4. Time Progression & Game Over Check
     turnReport += advanceTime(state);
-
-    // 5. Render Map & UI
+    
     renderUI(state, turnReport);
 
-    // 6. Output to LLM
     let nextStateForLLM = {
         ...state,
         availableActions: getAvailableActions(state.season)
@@ -125,15 +115,15 @@ function executeHazards(state, orders) {
     // -- FLOODS --
     let floodChance = state.season === 1 ? GAME_CONFIG.FLOOD_CHANCE_SPRING : GAME_CONFIG.FLOOD_CHANCE_BASE;
     if (Math.random() < floodChance) {
-        let sprawlPenalty = Math.floor(state.population * 0.25);
-        let floodThreat = Math.floor(Math.random() * 40) + 10 + sprawlPenalty; 
+        let sprawlPenalty = Math.floor(state.population * 0.20);
+        // NERFED: Max base threat is now 30 (was 50)
+        let floodThreat = Math.floor(Math.random() * 25) + 5 + sprawlPenalty; 
         
-        // Calculate how well defended we are (0.0 to 1.0)
         let defenseRatio = floodThreat > 0 ? (orders.dykeWorkers / floodThreat) : 1;
         defenseRatio = Math.min(defenseRatio, 1); 
 
         if (defenseRatio < 1) {
-            let damageMultiplier = 1 - defenseRatio; // e.g. if 20% defended, take 80% of max damage
+            let damageMultiplier = 1 - defenseRatio; 
             
             let drowned = Math.floor(state.population * GAME_CONFIG.FLOOD_MAX_POP_LOSS_PCT * damageMultiplier);
             let washedAway = Math.floor(state.plantedRice * GAME_CONFIG.FLOOD_MAX_SEED_LOSS_PCT * damageMultiplier);
@@ -154,10 +144,10 @@ function executeHazards(state, orders) {
     }
 
     if (Math.random() < thiefChance) {
-        let wealthPenalty = Math.floor(state.storedRice * 0.02); 
-        let thiefThreat = Math.floor(Math.random() * 50) + 20 + wealthPenalty; 
+        let wealthPenalty = Math.floor(state.storedRice * 0.015); 
+        // NERFED: Max base threat is now 35 (was 70)
+        let thiefThreat = Math.floor(Math.random() * 25) + 10 + wealthPenalty; 
         
-        // Calculate defense ratio
         let defenseRatio = thiefThreat > 0 ? (orders.villageGuards / thiefThreat) : 1;
         defenseRatio = Math.min(defenseRatio, 1);
 
@@ -178,7 +168,6 @@ function executeHazards(state, orders) {
 function executeSurvival(state) {
     let report = "";
 
-    // Refugees (Catch-up mechanic)
     if (state.population < 40 && state.population > 0) {
         let refugees = Math.floor(Math.random() * 20) + 10; 
         let refugeeRice = refugees * 15;
@@ -187,21 +176,18 @@ function executeSurvival(state) {
         report += `\n⛺️ Desperate refugees (${refugees}) arrived, bringing ${refugeeRice} sacks of scavenged rice. `;
     }
 
-    // Feeding the village
     const requiredRice = state.population * GAME_CONFIG.CONSUMPTION_PER_PERSON; 
     
     if (state.storedRice >= requiredRice) {
         state.storedRice -= requiredRice;
         report += `\n🍲 The village consumed ${requiredRice} rice and survived. `;
         
-        // Growth
         let growthRate = (Math.random() * 0.04) + 0.02;
         let newVillagers = Math.floor(state.population * growthRate) + 1; 
         state.population += newVillagers;
         report += ` ${newVillagers} wandering peasants joined us.`;
         
     } else {
-        // Starvation logic based on percentage max limits
         const deficit = requiredRice - state.storedRice;
         let rawStarved = Math.ceil(deficit / GAME_CONFIG.CONSUMPTION_PER_PERSON);
         let maxStarved = Math.floor(state.population * GAME_CONFIG.MAX_STARVATION_PCT);
