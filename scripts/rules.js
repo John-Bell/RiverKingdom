@@ -1,226 +1,296 @@
-// 1. The Game Engine (Pure Vanilla JS)
-function processSeason(flatData) {
+// ==========================================
+// GAME CONFIGURATION & BALANCE TWEAKS
+// ==========================================
+const GAME_CONFIG = {
+    // Economics
+    RICE_PER_FIELD_WORKER: 50,
+    CONSUMPTION_PER_PERSON: 2,
+    YIELD_MIN_MULTIPLIER: 3,
+    YIELD_MAX_MULTIPLIER: 7,
     
-    // --- THE FLAT LLM SANITIZER ---
-    let updatedState = {
+    // Starvation Cap
+    MAX_STARVATION_PCT: 0.60, // Maximum 60% of population can starve in one season
+    
+    // Floods
+    FLOOD_CHANCE_SPRING: 0.30,
+    FLOOD_CHANCE_BASE: 0.10,
+    FLOOD_MAX_POP_LOSS_PCT: 0.20, // At worst (0 workers), lose 20% of population
+    FLOOD_MAX_SEED_LOSS_PCT: 0.40, // At worst, lose 40% of planted seeds
+    
+    // Bandits
+    BANDIT_CHANCE_WINTER: 0.30,
+    BANDIT_CHANCE_BASE: 0.10,
+    BANDIT_HOARD_THRESHOLD: 10,    // Having 10x required food triggers hoard penalty
+    BANDIT_HOARD_PENALTY: 0.30,    // +30% chance of bandits if hoarding
+    BANDIT_MAX_RICE_LOSS_PCT: 0.30 // At worst (0 guards), lose 30% of stored rice
+};
+
+// ==========================================
+// MAIN ENGINE
+// ==========================================
+function processSeason(flatData) {
+    let state = sanitizeInput(flatData);
+    let orders = sanitizeOrders(flatData);
+
+    const totalWorkers = orders.dykeWorkers + orders.fieldWorkers + orders.villageGuards;
+
+    // Validate worker count
+    if (totalWorkers > state.population) {
+        let failState = { ...state, requiredQuestion: flatData.requiredQuestion || "" };
+        return formatResponse(failState, state, `INVALID ORDERS: My Prince, you ordered ${totalWorkers} peasants to work, but we only have ${state.population}. Are you counting ghosts?`);
+    }
+
+    let turnReport = "";
+
+    // 1. Season Specific Work (Planting / Harvesting)
+    turnReport += executeSeasonWork(state, orders);
+
+    // 2. Hazards (Floods & Bandits)
+    turnReport += executeHazards(state, orders);
+
+    // 3. Survival (Eating & Starvation)
+    turnReport += executeSurvival(state);
+
+    // 4. Time Progression & Game Over Check
+    turnReport += advanceTime(state);
+
+    // 5. Render Map & UI
+    renderUI(state, turnReport);
+
+    // 6. Output to LLM
+    let nextStateForLLM = {
+        ...state,
+        availableActions: getAvailableActions(state.season)
+    };
+
+    return formatResponse(nextStateForLLM, state, turnReport.trim());
+}
+
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
+function executeSeasonWork(state, orders) {
+    let report = "";
+
+    // SPRING: Planting
+    if (state.season === 1) {
+        if (state.storedRice < 200) {
+            let relief = 200 - state.storedRice;
+            state.storedRice += relief;
+            report += `\n📦 EMERGENCY RELIEF: Your father sent ${relief} sacks of seed rice. `;
+        }
+
+        if (orders.riceToPlant > state.storedRice) {
+            return `INVALID ORDERS: You commanded us to plant ${orders.riceToPlant} rice, but we only have ${state.storedRice}. You cannot plant air!`;
+        }
+        
+        const maxCapacity = orders.fieldWorkers * GAME_CONFIG.RICE_PER_FIELD_WORKER;
+        if (orders.riceToPlant > maxCapacity) {
+            return `INVALID ORDERS: Your ${orders.fieldWorkers} field workers can only plant a maximum of ${maxCapacity} sacks of rice.`;
+        }
+
+        state.storedRice -= orders.riceToPlant;
+        state.plantedRice = orders.riceToPlant;
+
+        if (orders.riceToPlant > 0) {
+            report += `Your ${orders.fieldWorkers} field workers planted ${orders.riceToPlant} sacks of rice. `;
+        }
+    }
+
+    // AUTUMN: Harvesting
+    if (state.season === 2) {
+        let plantedAmount = state.plantedRice || 0;
+        let yieldMultiplier = Math.floor(Math.random() * (GAME_CONFIG.YIELD_MAX_MULTIPLIER - GAME_CONFIG.YIELD_MIN_MULTIPLIER + 1)) + GAME_CONFIG.YIELD_MIN_MULTIPLIER; 
+        let baseYield = plantedAmount * yieldMultiplier;
+        
+        let maxYield = orders.fieldWorkers * GAME_CONFIG.RICE_PER_FIELD_WORKER;
+        let finalYield = Math.min(baseYield, maxYield);
+
+        state.storedRice += finalYield;
+        if (finalYield > 0) {
+            report += `The harvest yielded ${finalYield} sacks of rice (a ${yieldMultiplier}x return!). `;
+        } else if (plantedAmount > 0 && orders.fieldWorkers === 0) {
+            report += `⚠️ DISASTER! You planted rice but assigned no field workers to harvest it. It rotted. `;
+        }
+        state.plantedRice = 0;
+    }
+
+    return report;
+}
+
+function executeHazards(state, orders) {
+    let report = "";
+
+    // -- FLOODS --
+    let floodChance = state.season === 1 ? GAME_CONFIG.FLOOD_CHANCE_SPRING : GAME_CONFIG.FLOOD_CHANCE_BASE;
+    if (Math.random() < floodChance) {
+        let sprawlPenalty = Math.floor(state.population * 0.25);
+        let floodThreat = Math.floor(Math.random() * 40) + 10 + sprawlPenalty; 
+        
+        // Calculate how well defended we are (0.0 to 1.0)
+        let defenseRatio = floodThreat > 0 ? (orders.dykeWorkers / floodThreat) : 1;
+        defenseRatio = Math.min(defenseRatio, 1); 
+
+        if (defenseRatio < 1) {
+            let damageMultiplier = 1 - defenseRatio; // e.g. if 20% defended, take 80% of max damage
+            
+            let drowned = Math.floor(state.population * GAME_CONFIG.FLOOD_MAX_POP_LOSS_PCT * damageMultiplier);
+            let washedAway = Math.floor(state.plantedRice * GAME_CONFIG.FLOOD_MAX_SEED_LOSS_PCT * damageMultiplier);
+
+            state.population = Math.max(0, state.population - drowned);
+            state.plantedRice = Math.max(0, state.plantedRice - washedAway);
+
+            report += `\n⚠️ THE RIVER WAKES! Your dykes were insufficient. ${drowned} drowned and ${washedAway} seeds washed away. `;
+        } else {
+            report += `\n🌊 The river rose, but your ${orders.dykeWorkers} dyke workers held it back. `;
+        }
+    } else if (orders.dykeWorkers > 0) {
+        report += `\n🙄 You assigned ${orders.dykeWorkers} peasants to guard a perfectly calm stream. `;
+    }
+
+    // -- BANDITS --
+    let thiefChance = state.season === 3 ? GAME_CONFIG.BANDIT_CHANCE_WINTER : GAME_CONFIG.BANDIT_CHANCE_BASE;
+    if (state.storedRice > (state.population * GAME_CONFIG.BANDIT_HOARD_THRESHOLD)) {
+        thiefChance += GAME_CONFIG.BANDIT_HOARD_PENALTY; 
+    }
+
+    if (Math.random() < thiefChance) {
+        let wealthPenalty = Math.floor(state.storedRice * 0.02); 
+        let thiefThreat = Math.floor(Math.random() * 50) + 20 + wealthPenalty; 
+        
+        // Calculate defense ratio
+        let defenseRatio = thiefThreat > 0 ? (orders.villageGuards / thiefThreat) : 1;
+        defenseRatio = Math.min(defenseRatio, 1);
+
+        if (defenseRatio < 1) {
+            let damageMultiplier = 1 - defenseRatio;
+            let stolenRice = Math.floor(state.storedRice * GAME_CONFIG.BANDIT_MAX_RICE_LOSS_PCT * damageMultiplier);
+
+            state.storedRice -= stolenRice;
+            report += `\n🗡️ BANDITS! Thieves attacked! Your guards were overwhelmed, and ${stolenRice} sacks of rice were looted! `;
+        } else {
+            report += `\n🛡️ Bandits attacked, but your ${orders.villageGuards} guards held the line! `;
+        }
+    } else if (orders.villageGuards > 0) {
+        report += `\n🙄 You posted ${orders.villageGuards} guards to protect against imaginary thieves. `;
+    }
+
+    return report;
+}
+
+function executeSurvival(state) {
+    let report = "";
+
+    // Refugees (Catch-up mechanic)
+    if (state.population < 40 && state.population > 0) {
+        let refugees = Math.floor(Math.random() * 20) + 10; 
+        let refugeeRice = refugees * 15;
+        state.population += refugees;
+        state.storedRice += refugeeRice;
+        report += `\n⛺️ Desperate refugees (${refugees}) arrived, bringing ${refugeeRice} sacks of scavenged rice. `;
+    }
+
+    // Feeding the village
+    const requiredRice = state.population * GAME_CONFIG.CONSUMPTION_PER_PERSON; 
+    
+    if (state.storedRice >= requiredRice) {
+        state.storedRice -= requiredRice;
+        report += `\n🍲 The village consumed ${requiredRice} rice and survived. `;
+        
+        // Growth
+        let growthRate = (Math.random() * 0.04) + 0.02;
+        let newVillagers = Math.floor(state.population * growthRate) + 1; 
+        state.population += newVillagers;
+        report += ` ${newVillagers} wandering peasants joined us.`;
+        
+    } else {
+        // Starvation logic based on percentage max limits
+        const deficit = requiredRice - state.storedRice;
+        let rawStarved = Math.ceil(deficit / GAME_CONFIG.CONSUMPTION_PER_PERSON);
+        let maxStarved = Math.floor(state.population * GAME_CONFIG.MAX_STARVATION_PCT);
+        let starved = Math.min(rawStarved, maxStarved);
+        
+        state.population -= starved;
+        report += `\n💀 We needed ${requiredRice} rice but had ${state.storedRice}. ${starved} peasants starved. `;
+        state.storedRice = 0;
+    }
+
+    return report;
+}
+
+function advanceTime(state) {
+    let report = "";
+    if (state.population <= 0) {
+        state.population = 0;
+        state.gameOver = true;
+        report += `\n\n💀 GAME OVER. The last villager has perished.`;
+    } else {
+        state.season++;
+        if (state.season > 3) {
+            state.season = 1;
+            state.year++;
+        }
+        const seasonNames = { 1: "Growing", 2: "Harvest", 3: "Winter" };
+        report += `\n\nThe upcoming season is ${state.season} (${seasonNames[state.season]}).`;
+    }
+    return report;
+}
+
+// ==========================================
+// UTILITY FUNCTIONS
+// ==========================================
+function sanitizeInput(flatData) {
+    return {
         year: Number(flatData.year) || 1,
         season: Number(flatData.season) || 1,
         population: Number(flatData.population) || 0,
         storedRice: Number(flatData.storedRice) || 0,
         plantedRice: Number(flatData.plantedRice) || 0
     };
+}
 
-    const safeOrders = {
+function sanitizeOrders(flatData) {
+    return {
         dykeWorkers: Number(flatData.dykeWorkers) || 0,
         fieldWorkers: Number(flatData.fieldWorkers) || 0,
         villageGuards: Number(flatData.villageGuards) || 0,
         riceToPlant: Number(flatData.riceToPlant) || 0
     };
+}
 
-    const totalWorkers = safeOrders.dykeWorkers + safeOrders.fieldWorkers + safeOrders.villageGuards;
+function formatResponse(nextStateForLLM, stateForUI, turnReport) {
+    return { nextStateForLLM, stateForUI, turnReport };
+}
 
-    if (totalWorkers > updatedState.population) {
-        let failState = { ...updatedState, requiredQuestion: flatData.requiredQuestion || "" };
-        return { nextStateForLLM: failState, stateForUI: updatedState, turnReport: `INVALID ORDERS: My Prince, you ordered ${totalWorkers} peasants to work, but we only have ${updatedState.population}. Are you counting ghosts?` };
-    }
+function getAvailableActions(season) {
+    if (season === 1) return "Roles available: dyke workers, field workers, village guards, and sacks of rice to plant.";
+    if (season === 2) return "Roles available: dyke workers, field workers, and village guards.";
+    if (season === 3) return "Roles available: dyke workers and village guards (No farming in Winter).";
+    return "";
+}
 
-    let turnReport = "";
-
-    // 1. SPRING (Season 1): Planting
-    if (updatedState.season === 1) {
-        
-        // --- THE ROYAL BAILOUT ---
-        if (updatedState.storedRice < 200) {
-            let relief = 200 - updatedState.storedRice;
-            updatedState.storedRice += relief;
-            turnReport += `\n📦 EMERGENCY RELIEF: Your father, the Emperor, sent ${relief} sacks of seed rice because you are seemingly incapable of saving any! `;
-        }
-
-        if (safeOrders.riceToPlant > updatedState.storedRice) {
-            let failState = { ...updatedState, requiredQuestion: flatData.requiredQuestion || "" };
-            return { nextStateForLLM: failState, stateForUI: updatedState, turnReport: `INVALID ORDERS: My Prince, you commanded us to plant ${safeOrders.riceToPlant} rice, but we only have ${updatedState.storedRice}. You cannot plant air!` };
-        }
-        
-        const maxPlantingCapacity = safeOrders.fieldWorkers * 50;
-        if (safeOrders.riceToPlant > maxPlantingCapacity) {
-            let failState = { ...updatedState, requiredQuestion: flatData.requiredQuestion || "" };
-            return { nextStateForLLM: failState, stateForUI: updatedState, turnReport: `INVALID ORDERS: Your ${safeOrders.fieldWorkers} field workers can only plant a maximum of ${maxPlantingCapacity} sacks of rice. They only have two hands each!` };
-        }
-
-        updatedState.storedRice -= safeOrders.riceToPlant;
-        updatedState.plantedRice = safeOrders.riceToPlant;
-
-        if (safeOrders.riceToPlant > 0) {
-            turnReport += `Your ${safeOrders.fieldWorkers} field workers planted ${safeOrders.riceToPlant} sacks of rice. `;
-        }
-    }
-
-    // 2. AUTUMN (Season 2): Harvesting
-    if (updatedState.season === 2) {
-        let plantedAmount = updatedState.plantedRice || 0;
-
-        // RNG Yield Multiplier (between 3x and 7x)
-        let yieldMultiplier = Math.floor(Math.random() * 5) + 3; 
-        let baseYield = plantedAmount * yieldMultiplier;
-        
-        let maxYield = safeOrders.fieldWorkers * 50;
-        let finalYield = Math.min(baseYield, maxYield);
-
-        updatedState.storedRice += finalYield;
-        if (finalYield > 0) {
-            turnReport += `The harvest yielded ${finalYield} sacks of rice (a ${yieldMultiplier}x return!). `;
-        } else if (plantedAmount > 0 && safeOrders.fieldWorkers === 0) {
-            turnReport += `⚠️ DISASTER! You planted rice but assigned no field workers to harvest it. It all rotted. Your father will be thrilled. `;
-        }
-
-        updatedState.plantedRice = 0;
-    }
-
-    // --- 3. HAZARDS (Dynamic Seasonal Chances) ---
-
-    // LEVEL 2 HAZARD: Floods 
-    // 30% in Spring, 10% other seasons
-    let floodChance = updatedState.season === 1 ? 0.30 : 0.10;
-    
-    if (Math.random() < floodChance) {
-        // Floods scale with population sprawl. Base 10-50, plus 25% of population.
-        let sprawlPenalty = Math.floor(updatedState.population * 0.25);
-        let floodStrength = Math.floor(Math.random() * 40) + 10 + sprawlPenalty; 
-        
-        if (safeOrders.dykeWorkers < floodStrength) {
-            let damage = floodStrength - safeOrders.dykeWorkers;
-            let drowned = Math.floor(damage / 2);
-            let washedAway = damage * 5;
-
-            updatedState.population = Math.max(0, updatedState.population - drowned);
-            updatedState.plantedRice = Math.max(0, updatedState.plantedRice - washedAway);
-
-            turnReport += `\n⚠️ THE RIVER WAKES! The flood overwhelmed your dyke workers! ${drowned} drowned and ${washedAway} seeds washed away. A brilliant turn of events! `;
-        } else {
-            turnReport += `\n🌊 The river rose, but your ${safeOrders.dykeWorkers} dyke workers held it back. A rare success! `;
-        }
-    } else if (safeOrders.dykeWorkers > 0) {
-        turnReport += `\n🙄 You assigned ${safeOrders.dykeWorkers} peasants to guard a perfectly calm stream. A brilliant waste of labor. `;
-    }
-
-    // LEVEL 3 HAZARD: Bandits 
-    // 30% in Winter, 10% base otherwise. 
-    let thiefChance = updatedState.season === 3 ? 0.30 : 0.10;
-    
-    // Massive surplus check: If you have 10x the rice your population consumes, thieves notice.
-    if (updatedState.storedRice > (updatedState.population * 10)) {
-        thiefChance += 0.30; 
-    }
-
-    if (Math.random() < thiefChance) {
-        // Bandits scale with your wealth! Base 20-70, plus 2% of stored rice.
-        let wealthPenalty = Math.floor(updatedState.storedRice * 0.02); 
-        let thiefStrength = Math.floor(Math.random() * 50) + 20 + wealthPenalty; 
-        
-        if (safeOrders.villageGuards < thiefStrength) {
-            let stolenMultiplier = thiefStrength - safeOrders.villageGuards;
-            let stolenRice = stolenMultiplier * 50; 
-
-            stolenRice = Math.min(stolenRice, updatedState.storedRice);
-            updatedState.storedRice -= stolenRice;
-
-            if (stolenRice > 0) {
-                turnReport += `\n🗡️ BANDITS! Thieves smelled our wealth and attacked! Your guards failed, and ${stolenRice} sacks of rice were looted! `;
-            }
-        } else {
-            turnReport += `\n🛡️ Bandits attacked, but your ${safeOrders.villageGuards} guards actually did their jobs and held the line! `;
-        }
-    } else if (safeOrders.villageGuards > 0) {
-        turnReport += `\n🙄 You posted ${safeOrders.villageGuards} guards to protect our pitiful village from imaginary thieves. Masterful strategy, Your Highness. `;
-    }
-
-    // 4. SURVIVAL: Now the villagers eat
-    
-    // THE CATCH-UP MECHANIC: Refugees
-    if (updatedState.population < 40 && updatedState.population > 0) {
-        let refugees = Math.floor(Math.random() * 20) + 10; 
-        let refugeeRice = refugees * 15;
-        updatedState.population += refugees;
-        updatedState.storedRice += refugeeRice;
-        turnReport += `\n⛺️ Desperate refugees (${refugees}) have arrived, bringing ${refugeeRice} sacks of scavenged rice. Try not to kill these ones. `;
-    }
-
-    // Lowered consumption to 2 per person per season
-    const requiredRice = updatedState.population * 2; 
-    let starved = 0;
-
-    if (updatedState.storedRice >= requiredRice) {
-        updatedState.storedRice -= requiredRice;
-        turnReport += `\n🍲 The village consumed ${requiredRice} sacks of rice and survived your rule for another season. `;
-        
-        let growthRate = (Math.random() * 0.04) + 0.02;
-        let newVillagers = Math.floor(updatedState.population * growthRate) + 1; 
-        updatedState.population += newVillagers;
-        turnReport += `Fools have heard of our full granaries! ${newVillagers} wandering peasants joined us.`;
-        
-    } else {
-        const deficit = requiredRice - updatedState.storedRice;
-        starved = Math.ceil(deficit / 2);
-        updatedState.population -= starved;
-        turnReport += `\n💀 We needed ${requiredRice} rice but had ${updatedState.storedRice}. ${starved} peasants starved to death. A tragic day for the kingdom. `;
-        updatedState.storedRice = 0;
-    }
-
-    // 5. SURVIVAL & TIME MARCHES ON (Permadeath)
-    if (updatedState.population <= 0) {
-        updatedState.population = 0;
-        turnReport += `\n\n💀 GAME OVER. The last villager has perished. Your village is a graveyard. I shall inform your father of your total failure.`;
-        updatedState.gameOver = true;
-    } else {
-        updatedState.season++;
-        if (updatedState.season > 3) {
-            updatedState.season = 1;
-            updatedState.year++;
-        }
-        const seasonNames = { 1: "Growing", 2: "Harvest", 3: "Winter" };
-        turnReport += `\n\nThe upcoming season is ${updatedState.season} (${seasonNames[updatedState.season]}).`;
-    }
-
-    // Draw the map
+function renderUI(state, turnReport) {
     try {
         const mapContainer = document.getElementById('map-container');
         if (mapContainer) {
-            const popCount = Math.max(0, Math.ceil(Number(updatedState.population) / 20) || 0);
-            const riceCount = Math.max(0, Math.ceil(Number(updatedState.storedRice) / 500) || 0);
-            const plantedCount = Math.max(0, Math.ceil(Number(updatedState.plantedRice) / 500) || 0);
+            const popCount = Math.max(0, Math.ceil(Number(state.population) / 20) || 0);
+            const riceCount = Math.max(0, Math.ceil(Number(state.storedRice) / 500) || 0);
+            const plantedCount = Math.max(0, Math.ceil(Number(state.plantedRice) / 500) || 0);
             
             mapContainer.innerHTML = `
-                        <div><strong>Year: ${updatedState.year} | Season: ${updatedState.season}</strong></div>
-                        <div style="margin: 20px 0;">🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦</div>
-                        <div><strong>Villagers:</strong><br/> ${"🧑‍🌾".repeat(popCount) || "💀 (Ghost Town)"}</div>
-                        <div style="margin: 10px 0;"><strong>Granary (Stored):</strong><br/> ${"🌾".repeat(riceCount) || "Empty!"}</div>
-                        <div style="margin: 10px 0;"><strong>Fields (Planted):</strong><br/> ${"🌱".repeat(plantedCount) || "Barren"}</div>
-                        <div class="stats" style="margin-bottom: 10px;">Pop: ${updatedState.population} | Stored: ${updatedState.storedRice} | Planted: ${updatedState.plantedRice}</div>
-                        
-                        <div style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 5px; font-size: 0.9em; text-align: left;">
-                            <strong>📜 Vizier's Report:</strong><br/>
-                            ${turnReport.trim()}
-                        </div>
-                    `;
+                <div><strong>Year: ${state.year} | Season: ${state.season}</strong></div>
+                <div style="margin: 20px 0;">🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦</div>
+                <div><strong>Villagers:</strong><br/> ${"🧑‍🌾".repeat(popCount) || "💀 (Ghost Town)"}</div>
+                <div style="margin: 10px 0;"><strong>Granary (Stored):</strong><br/> ${"🌾".repeat(riceCount) || "Empty!"}</div>
+                <div style="margin: 10px 0;"><strong>Fields (Planted):</strong><br/> ${"🌱".repeat(plantedCount) || "Barren"}</div>
+                <div class="stats" style="margin-bottom: 10px;">Pop: ${state.population} | Stored: ${state.storedRice} | Planted: ${state.plantedRice}</div>
+                
+                <div style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 5px; font-size: 0.9em; text-align: left;">
+                    <strong>📜 Vizier's Report:</strong><br/>
+                    ${turnReport.trim()}
+                </div>
+            `;
         }
     } catch (e) { }
-    
-    // Define the available actions for the LLM to use to write its own prompt
-    let availableActions = "";
-
-    if (updatedState.season === 1) { // SPRING
-        availableActions = "Roles available: dyke workers, field workers, village guards, and sacks of rice to plant.";
-    } else if (updatedState.season === 2) { // AUTUMN
-        availableActions = "Roles available: dyke workers, field workers, and village guards.";
-    } else if (updatedState.season === 3) { // WINTER
-        availableActions = "Roles available: dyke workers and village guards (No farming in Winter).";
-    }
-    
-    let nextStateForLLM = {
-        ...updatedState,
-        availableActions: availableActions
-    };
-
-    return { nextStateForLLM: nextStateForLLM, stateForUI: updatedState, turnReport: turnReport.trim() };
-
 }
