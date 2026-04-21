@@ -26,7 +26,7 @@ function processSeason(flatData) {
 
     let turnReport = "";
 
-    // 1. SPRING (Season 1): Planting & Floods
+    // 1. SPRING (Season 1): Planting
     if (updatedState.season === 1) {
         
         // --- THE ROYAL BAILOUT ---
@@ -53,28 +53,6 @@ function processSeason(flatData) {
         if (safeOrders.riceToPlant > 0) {
             turnReport += `Your ${safeOrders.fieldWorkers} field workers planted ${safeOrders.riceToPlant} sacks of rice. `;
         }
-
-        // LEVEL 2 HAZARD: Floods (Always Active)
-        if (Math.random() < 0.3) {
-            // Floods scale with population sprawl. Base 10-50, plus 25% of population.
-            let sprawlPenalty = Math.floor(updatedState.population * 0.25);
-            let floodStrength = Math.floor(Math.random() * 40) + 10 + sprawlPenalty; 
-            
-            if (safeOrders.dykeWorkers < floodStrength) {
-                let damage = floodStrength - safeOrders.dykeWorkers;
-                let drowned = Math.floor(damage / 2);
-                let washedAway = damage * 5;
-
-                updatedState.population = Math.max(0, updatedState.population - drowned);
-                updatedState.plantedRice = Math.max(0, updatedState.plantedRice - washedAway);
-
-                turnReport += `\n⚠️ THE RIVER WAKES! The flood overwhelmed your dyke workers! ${drowned} drowned and ${washedAway} seeds washed away. A brilliant start to the year! `;
-            } else {
-                turnReport += `\n🌊 The river rose, but your ${safeOrders.dykeWorkers} dyke workers held it back. A rare success! `;
-            }
-        } else if (safeOrders.dykeWorkers > 0) {
-            turnReport += `\n🙄 You assigned ${safeOrders.dykeWorkers} peasants to guard a perfectly calm stream. A brilliant waste of labor. `;
-        }
     }
 
     // 2. AUTUMN (Season 2): Harvesting
@@ -98,30 +76,51 @@ function processSeason(flatData) {
         updatedState.plantedRice = 0;
     }
 
-    // 3. WINTER (Season 3): Thieves
-    if (updatedState.season === 3) {
-        // LEVEL 3 HAZARD: Bandits (Always Active)
-        if (Math.random() < 0.6) {
-            // Bandits scale with your wealth! Base 20-70, plus 2% of stored rice.
-            let wealthPenalty = Math.floor(updatedState.storedRice * 0.02); 
-            let thiefStrength = Math.floor(Math.random() * 50) + 20 + wealthPenalty; 
-            
-            if (safeOrders.villageGuards < thiefStrength) {
-                let stolenMultiplier = thiefStrength - safeOrders.villageGuards;
-                let stolenRice = stolenMultiplier * 50; 
+    // --- 3. HAZARDS (Always Active Every Season) ---
 
-                stolenRice = Math.min(stolenRice, updatedState.storedRice);
-                updatedState.storedRice -= stolenRice;
+    // LEVEL 2 HAZARD: Floods 
+    if (Math.random() < 0.3) {
+        // Floods scale with population sprawl. Base 10-50, plus 25% of population.
+        let sprawlPenalty = Math.floor(updatedState.population * 0.25);
+        let floodStrength = Math.floor(Math.random() * 40) + 10 + sprawlPenalty; 
+        
+        if (safeOrders.dykeWorkers < floodStrength) {
+            let damage = floodStrength - safeOrders.dykeWorkers;
+            let drowned = Math.floor(damage / 2);
+            let washedAway = damage * 5;
 
-                if (stolenRice > 0) {
-                    turnReport += `\n🗡️ BANDITS! Thieves smelled our wealth and attacked! Your guards failed, and ${stolenRice} sacks of rice were looted! `;
-                }
-            } else {
-                turnReport += `\n🛡️ Bandits attacked, but your ${safeOrders.villageGuards} guards actually did their jobs and held the line! `;
-            }
-        } else if (safeOrders.villageGuards > 0) {
-            turnReport += `\n🙄 You posted ${safeOrders.villageGuards} guards in the freezing snow to protect our pitiful village from imaginary thieves. Masterful strategy, Your Highness. `;
+            updatedState.population = Math.max(0, updatedState.population - drowned);
+            updatedState.plantedRice = Math.max(0, updatedState.plantedRice - washedAway);
+
+            turnReport += `\n⚠️ THE RIVER WAKES! The flood overwhelmed your dyke workers! ${drowned} drowned and ${washedAway} seeds washed away. A brilliant turn of events! `;
+        } else {
+            turnReport += `\n🌊 The river rose, but your ${safeOrders.dykeWorkers} dyke workers held it back. A rare success! `;
         }
+    } else if (safeOrders.dykeWorkers > 0) {
+        turnReport += `\n🙄 You assigned ${safeOrders.dykeWorkers} peasants to guard a perfectly calm stream. A brilliant waste of labor. `;
+    }
+
+    // LEVEL 3 HAZARD: Bandits 
+    if (Math.random() < 0.6) {
+        // Bandits scale with your wealth! Base 20-70, plus 2% of stored rice.
+        let wealthPenalty = Math.floor(updatedState.storedRice * 0.02); 
+        let thiefStrength = Math.floor(Math.random() * 50) + 20 + wealthPenalty; 
+        
+        if (safeOrders.villageGuards < thiefStrength) {
+            let stolenMultiplier = thiefStrength - safeOrders.villageGuards;
+            let stolenRice = stolenMultiplier * 50; 
+
+            stolenRice = Math.min(stolenRice, updatedState.storedRice);
+            updatedState.storedRice -= stolenRice;
+
+            if (stolenRice > 0) {
+                turnReport += `\n🗡️ BANDITS! Thieves smelled our wealth and attacked! Your guards failed, and ${stolenRice} sacks of rice were looted! `;
+            }
+        } else {
+            turnReport += `\n🛡️ Bandits attacked, but your ${safeOrders.villageGuards} guards actually did their jobs and held the line! `;
+        }
+    } else if (safeOrders.villageGuards > 0) {
+        turnReport += `\n🙄 You posted ${safeOrders.villageGuards} guards to protect our pitiful village from imaginary thieves. Masterful strategy, Your Highness. `;
     }
 
     // 4. SURVIVAL: Now the villagers eat
