@@ -75,8 +75,8 @@ window['ai_edge_gallery_get_result'] = async (data) => {
         return JSON.stringify({
             result: `${nextTurn.turnReport}\n\nDATA FOR VIZIER:\nYear: ${nextTurn.nextStateForLLM.year} | Season: ${nextTurn.nextStateForLLM.season} | Population: ${nextTurn.nextStateForLLM.population} | Stored Rice: ${nextTurn.nextStateForLLM.storedRice}\nAvailable Actions: ${nextTurn.nextStateForLLM.availableActions}`,
             webview: {
-                url: `assets/webview.html?state=${stateString}`,
-                aspectRatio: 1.333
+                url: `webview.html?state=${stateString}`,
+                aspectRatio: 0.56
             }
         });
 
