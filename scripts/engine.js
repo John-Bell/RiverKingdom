@@ -12,7 +12,7 @@ window['ai_edge_gallery_get_result'] = async (data) => {
 
                 return JSON.stringify({
                     result: `I found the records of your village, my Prince. We are in Year ${loadedState.year}, Season ${loadedState.season}. The village awaits your brilliant commands.\n\nDATA FOR VIZIER:\nYear: ${loadedState.year} | Season: ${loadedState.season} | Population: ${loadedState.population} | Stored Rice: ${loadedState.storedRice}\nAvailable Actions: ${loadedState.availableActions}`,
-                    webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
+                    webview: { url: `assets/webview.html?state=${stateString}`, aspectRatio: 1.333 }
                 });
             } else {
                 // Auto-start new game if no save exists
@@ -25,7 +25,7 @@ window['ai_edge_gallery_get_result'] = async (data) => {
                 
                 return JSON.stringify({
                     result: `Your father, the Emperor, has entrusted you with a new village. I am eager to witness your strategic genius, my Prince.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: ${initState.availableActions}`,
-                    webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
+                    webview: { url: `assets/webview.html?state=${stateString}`, aspectRatio: 1.333 }
                 });
             }
         }
@@ -41,7 +41,7 @@ window['ai_edge_gallery_get_result'] = async (data) => {
             
             return JSON.stringify({
                 result: `A fresh village has been established for you by the Emperor. I await your flawless leadership.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: ${initState.availableActions}`,
-                webview: { url: `webview.html?state=${stateString}`, aspectRatio: 1.333 }
+                webview: { url: `assets/webview.html?state=${stateString}`, aspectRatio: 1.333 }
             });
         }
 
@@ -75,7 +75,7 @@ window['ai_edge_gallery_get_result'] = async (data) => {
         return JSON.stringify({
             result: `${nextTurn.turnReport}\n\nDATA FOR VIZIER:\nYear: ${nextTurn.nextStateForLLM.year} | Season: ${nextTurn.nextStateForLLM.season} | Population: ${nextTurn.nextStateForLLM.population} | Stored Rice: ${nextTurn.nextStateForLLM.storedRice}\nAvailable Actions: ${nextTurn.nextStateForLLM.availableActions}`,
             webview: {
-                url: `webview.html?state=${stateString}`,
+                url: `assets/webview.html?state=${stateString}`,
                 aspectRatio: 1.333
             }
         });
