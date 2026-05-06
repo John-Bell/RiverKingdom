@@ -41,12 +41,13 @@ function processSeason(flatData) {
 
     let turnReport = "";
 
+    state.floodIntensity = 0;
+    state.hasThieves = false;
+
     turnReport += executeSeasonWork(state, orders);
     turnReport += executeHazards(state, orders);
     turnReport += executeSurvival(state);
     turnReport += advanceTime(state);
-    
-    renderUI(state, turnReport);
 
     let nextStateForLLM = {
         ...state,
@@ -156,6 +157,7 @@ function executeHazards(state, orders) {
             let stolenRice = Math.floor(state.storedRice * GAME_CONFIG.BANDIT_MAX_RICE_LOSS_PCT * damageMultiplier);
 
             state.storedRice -= stolenRice;
+            state.hasThieves = true;
             report += `\n🗡️ BANDITS! Thieves attacked! Your guards were overwhelmed, and ${stolenRice} sacks of rice were looted! `;
         } else {
             report += `\n🛡️ Bandits attacked, but your ${orders.villageGuards} guards held the line! `;
@@ -252,27 +254,3 @@ function getAvailableActions(season) {
     return "";
 }
 
-function renderUI(state, turnReport) {
-    try {
-        const mapContainer = document.getElementById('map-container');
-        if (mapContainer) {
-            const popCount = Math.max(0, Math.ceil(Number(state.population) / 20) || 0);
-            const riceCount = Math.max(0, Math.ceil(Number(state.storedRice) / 500) || 0);
-            const plantedCount = Math.max(0, Math.ceil(Number(state.plantedRice) / 500) || 0);
-            
-            mapContainer.innerHTML = `
-                <div><strong>Year: ${state.year} | Season: ${state.season}</strong></div>
-                <div style="margin: 20px 0;">🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦</div>
-                <div><strong>Villagers:</strong><br/> ${"🧑‍🌾".repeat(popCount) || "💀 (Ghost Town)"}</div>
-                <div style="margin: 10px 0;"><strong>Granary (Stored):</strong><br/> ${"🌾".repeat(riceCount) || "Empty!"}</div>
-                <div style="margin: 10px 0;"><strong>Fields (Planted):</strong><br/> ${"🌱".repeat(plantedCount) || "Barren"}</div>
-                <div class="stats" style="margin-bottom: 10px;">Pop: ${state.population} | Stored: ${state.storedRice} | Planted: ${state.plantedRice}</div>
-                
-                <div style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 5px; font-size: 0.9em; text-align: left;">
-                    <strong>📜 Vizier's Report:</strong><br/>
-                    ${turnReport.trim()}
-                </div>
-            `;
-        }
-    } catch (e) { }
-}
