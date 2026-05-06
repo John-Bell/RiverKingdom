@@ -1,684 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="fonts.css">
     <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; }
         body {
             font-family: 'Lora', serif;
             background-color: #f3e9d2;
-            background-image: radial-gradient(#e4d4b6 1px, transparent 1px);
-            background-size: 20px 20px;
-            margin: 0;
-            padding: 0;
-            color: #2b2b2b;
+            margin: 0; padding: 0;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* Top Bar */
+        /* --- PREVIEW VS FULLSCREEN LOGIC --- */
+        
+        /* Hide top section by default (for chat bubble preview) */
         .top-section {
-            padding: 25px 20px 15px;
-            text-align: center;
-            position: relative;
-            z-index: 10;
-            background: linear-gradient(to bottom, #f3e9d2, rgba(243, 233, 210, 0.95));
+            display: none;
+            padding: 15px 20px;
+            background: #f3e9d2;
             border-bottom: 2px solid #d0c0a0;
         }
 
-        .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 32px;
-            height: 32px;
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-family: sans-serif;
-            font-size: 20px;
-            cursor: pointer;
+        /* Show top section only in Full Screen (height threshold) */
+        @media (min-height: 600px) {
+            .top-section { display: block; }
+            .map-area { height: 65%; }
         }
 
-        .year-season {
-            font-family: 'Cinzel', serif;
-            font-size: 24px;
-            letter-spacing: 2px;
-            margin-bottom: 12px;
-            font-weight: bold;
-            color: #1a1a1a;
+        .map-area { flex: 1; display: flex; position: relative; overflow: hidden; }
+        
+        /* Ensure the map fills the whole bubble in preview */
+        @media (max-height: 599px) {
+            .map-area { height: 100vh; width: 100vw; }
         }
 
-        .progress-bar {
-            display: flex;
-            justify-content: center;
-            gap: 6px;
-            margin-bottom: 25px;
-        }
+        /* --- UI COMPONENTS --- */
+        .year-season { font-family: 'Cinzel', serif; font-size: 20px; text-align: center; margin-bottom: 10px; }
+        .stats-row { display: flex; justify-content: space-around; }
+        .stat-label { font-family: 'Cinzel', serif; font-size: 11px; color: #555; }
+        .stat-val { font-size: 24px; font-weight: bold; }
 
-        .progress-segment {
-            width: 35px;
-            height: 8px;
-            background-color: #d0c0a0;
-            border-radius: 1px;
-        }
+        .left-panel, .right-panel { width: 50%; height: 100%; position: relative; }
+        .village-img { transform: scale(1.8) translate(15%, -15%); width: 100%; }
+        .mountain-img { width: 160%; position: absolute; right: -25%; bottom: -35%; }
 
-        .progress-segment.filled {
-            background-color: #1a2530;
-        }
-
-        .stats-row {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            max-width: 100%;
-            margin: 0 auto;
-            gap: 40px;
-        }
-
-        .stat-col {
-            text-align: center;
-            min-width: 120px;
-        }
-
-        .stat-divider {
-            width: 1px;
-            height: 50px;
-            background-color: #d0c0a0;
-        }
-
-        .stat-label {
-            font-family: 'Cinzel', serif;
-            font-size: 13px;
-            letter-spacing: 2px;
-            color: #555;
-            margin-bottom: 8px;
-        }
-
-        .stat-val {
-            font-size: 32px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .stat-val.empty {
-            color: #8b0000;
-        }
-
-        .stat-val.filled {
-            color: #1a1a1a;
-        }
-
-        .stat-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .stat-icon svg {
-            width: 28px;
-            height: 28px;
-        }
-
-        /* Map Area */
-        .map-area {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .left-panel {
-            width: 50%;
-            height: 100%;
-            background: #eadebc;
-        }
-
-        .left-panel img {
-            width: 100%;
-            height: 100%;
-            object-position: right bottom;
-        }
-
-        .right-panel {
-            width: 50%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            background: #eadebc;
-        }
-
-        .grid-row {
-            flex: 1;
-            display: flex;
-            position: relative;
-            border-bottom: 1px solid rgba(208, 192, 160, 0.5);
-            overflow: hidden;
-        }
-
-        .grid-row:last-child {
-            border-bottom: none;
-        }
-
-        .grid-left {
-            width: 45%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px;
-        }
-
-        .grid-right {
-            width: 55%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .village-img {
-            max-width: 250%;
-            max-height: 250%;
-            object-fit: contain;
-            transform: scale(1.8) translate(15%, -15%);
-        }
-
-        .mountain-icon {
-            color: #b22222;
-            font-size: 14px;
-            margin-bottom: 2px;
-        }
-
-        /* --- THIEF MULTIPLAYER ANIMATIONS --- */
+        /* --- ANIMATIONS (Non-infinite for timeline sync) --- */
         .thief-sprite {
-            position: absolute;
-            width: 30px;
-            height: 50px;
-            z-index: 5;
-            background-image: url('thief.png');
-            background-size: 500% 100%;
-            background-repeat: no-repeat;
-
-            bottom: var(--start-y, 0px);
-            right: var(--start-x, 0px);
+            position: absolute; width: 30px; height: 50px;
+            background-image: url('thief.png'); background-size: 500% 100%;
+            bottom: var(--start-y); right: var(--start-x);
         }
 
-        /* Speed up the raid loops to 4-5 seconds so they finish before disappearing */
-        .thief-1 {
-            --start-y: 400px;
-            --start-x: 90px;
-            animation: walk-cycle 0.6s steps(4) infinite, raid-village-1 12s linear infinite;
-        }
+        /* Walk cycle stays infinite, but movement happens once 'forwards' */
+        .thief-1 { --start-y: 400px; --start-x: 90px; animation: walk-cycle 0.6s steps(4) infinite, raid-village-1 5s linear forwards; }
+        .thief-2 { --start-y: 350px; --start-x: 60px; animation: walk-cycle 0.5s steps(4) infinite, raid-village-2 4s linear forwards; }
 
-        .thief-2 {
-            --start-y: 390px;
-            --start-x: 30px;
-            animation: walk-cycle 0.5s steps(4) infinite, raid-village-2 5s linear infinite;
-        }
+        @keyframes walk-cycle { 0% { background-position: 0 0; } 100% { background-position: 100% 0; } }
+        @keyframes raid-village-1 { 0% { transform: translate(0,0) scaleX(-1); } 100% { transform: translate(-100px, 20px) scaleX(-1); } }
+        @keyframes raid-village-2 { 0% { transform: translate(0,0) scaleX(-1); } 100% { transform: translate(-80px, 40px) scaleX(-1); } }
 
-        .thief-3 {
-            --start-y: 350px;
-            --start-x: 60px;
-            animation: walk-cycle 0.5s steps(4) infinite, raid-village-3 10s linear infinite;
-        }
-
-        .thief-4 {
-            --start-y: 300px;
-            --start-x: 85px;
-            animation: walk-cycle 0.8s steps(4) infinite, raid-village-4 18s linear infinite;
-        }
-
-        @keyframes walk-cycle {
-            0% {
-                background-position: 0 0;
-            }
-
-            100% {
-                background-position: 100% 0;
-            }
-        }
-
-        @keyframes raid-village-1 {
-            0% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-
-            45% {
-                transform: translate(-90px, 20px) scaleX(-1);
-            }
-
-            50% {
-                transform: translate(-90px, 20px) scaleX(1);
-            }
-
-            95% {
-                transform: translate(0px, 0px) scaleX(1);
-            }
-
-            100% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-        }
-
-        @keyframes raid-village-2 {
-            0% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-
-            40% {
-                transform: translate(-80px, 10px) scaleX(-1);
-            }
-
-            55% {
-                transform: translate(-80px, 10px) scaleX(1);
-            }
-
-            95% {
-                transform: translate(0px, 0px) scaleX(1);
-            }
-
-            100% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-        }
-
-        @keyframes raid-village-3 {
-            0% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-
-            48% {
-                transform: translate(-70px, 30px) scaleX(-1);
-            }
-
-            52% {
-                transform: translate(-70px, 30px) scaleX(1);
-            }
-
-            98% {
-                transform: translate(0px, 0px) scaleX(1);
-            }
-
-            100% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-        }
-
-        @keyframes raid-village-4 {
-            0% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-
-            42% {
-                transform: translate(-100px, 0px) scaleX(-1);
-            }
-
-            58% {
-                transform: translate(-100px, 0px) scaleX(1);
-            }
-
-            92% {
-                transform: translate(0px, 0px) scaleX(1);
-            }
-
-            100% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-        }
-
-        #floodCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 3;
-            pointer-events: none;
-            mix-blend-mode: multiply;
-        }
-
-        .village-img {
-            max-width: 250%;
-            max-height: 250%;
-            object-fit: contain;
-            transform: scale(1.8) translate(15%, -15%);
-            position: relative;
-            z-index: 4;
-        }
-
-        .mountain-img {
-            width: 160%;
-            height: 160%;
-            object-fit: contain;
-            position: absolute;
-            right: -25%;
-            bottom: -35%;
-            opacity: 0.9;
-            z-index: 4;
-        }
-
-        /* Temporary test buttons */
-        .test-controls {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            z-index: 100;
-            display: flex;
-            gap: 5px;
-        }
-
-        .test-controls button {
-            background: #2980b9;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-family: sans-serif;
-        }
-
-        .test-controls button:active {
-            background: #1c5980;
-        }
+        #floodCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; mix-blend-mode: multiply; }
     </style>
 </head>
-
 <body>
     <div class="top-section">
-        <div class="close-btn">&times;</div>
-
-        <div class="year-season">
-            YEAR: <span id="year-val">-</span> <span style="margin: 0 10px; color: #a09070;">|</span> SEASON: <span
-                id="season-val">-</span>
-        </div>
-
-        <div class="progress-bar">
-            <div class="progress-segment filled"></div>
-            <div class="progress-segment filled"></div>
-            <div class="progress-segment filled"></div>
-            <div class="progress-segment filled"></div>
-            <div class="progress-segment filled"></div>
-            <div class="progress-segment filled"></div>
-            <div class="progress-segment"></div>
-            <div class="progress-segment"></div>
-            <div class="progress-segment"></div>
-            <div class="progress-segment"></div>
-        </div>
-
+        <div class="year-season">YEAR: <span id="year-val">-</span> | SEASON: <span id="season-val">-</span></div>
         <div class="stats-row">
-            <div class="stat-col">
-                <div class="stat-label">VILLAGERS</div>
-                <div class="stat-val filled">
-                    <span class="stat-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                    </span>
-                    <span id="villagers-val">-</span>
-                </div>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat-col">
-                <div class="stat-label">GRANARY</div>
-                <div class="stat-val empty" id="granary-val-container">
-                    <span class="stat-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#8b0000" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" id="granary-icon">
-                            <path d="M4 4v16M20 4v16M4 10h16M4 16h16M8 10v-3M16 10v-3M8 16v-3M16 16v-3" />
-                        </svg>
-                    </span>
-                    <span id="granary-val">-</span>
-                </div>
-            </div>
+            <div class="stat-col"><div class="stat-label">VILLAGERS</div><div class="stat-val" id="villagers-val">-</div></div>
+            <div class="stat-col"><div class="stat-label">GRANARY</div><div class="stat-val" id="granary-val">-</div></div>
         </div>
     </div>
 
     <div class="map-area">
         <canvas id="floodCanvas"></canvas>
-        <div class="left-panel">
-            <img src="river-land.png" alt="River Land" />
-        </div>
+        <div class="left-panel"><img src="river-land.png" style="width:100%; height:100%; object-fit:cover;"></div>
         <div class="right-panel">
-            <div class="grid-row">
-                <div class="grid-left">
-                    <img src="Village.png" class="village-img" alt="Village" />
-                </div>
-                <div class="grid-right">
-                    <img src="Mountain.png" class="mountain-img" alt="Mountain" />
-
-                    <!-- State-Toggled Thieves Container (Hidden by default) -->
-                    <div id="thieves-container" style="display: none;">
-                        <div class="thief-sprite thief-1"></div>
-                        <div class="thief-sprite thief-2"></div>
-                        <div class="thief-sprite thief-3"></div>
-                        <div class="thief-sprite thief-4"></div>
-                    </div>
-
-                </div>
+            <img src="Village.png" class="village-img">
+            <img src="Mountain.png" class="mountain-img">
+            <div id="thieves-container" style="display: none;">
+                <div class="thief-sprite thief-1"></div>
+                <div class="thief-sprite thief-2"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- FLOOD PHYSICS ENGINE ---
-        let canvas;
-        let ctx;
-        let particles = [];
-        let floodIntensity = 0;
-        let floodTimeout; // Variable to track the auto-stop timer
+        let canvas, ctx, particles = [], floodIntensity = 0;
 
-        function resizeCanvas() {
-            if (!canvas) return;
-            const rect = canvas.parentElement.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-        }
-
-        class WaterParticle {
-            constructor(x, y, intensity) {
-                const isCatastrophic = intensity > 2;
-                this.x = x;
-                this.y = y + (Math.random() * 20 - 10);
-
-                if (isCatastrophic) {
-                    const angle = (Math.random() * 1.4) - 0.7;
-                    const speed = (Math.random() * 6) + 3;
-
-                    this.vx = Math.cos(angle) * speed;
-                    this.vy = Math.sin(angle) * speed;
-
-                    this.size = Math.random() * 6 + 4;
-                    this.friction = 0.94;
-                    this.life = 1.6;
-                } else {
-                    this.vx = (Math.random() * 2.5) + 1.5;
-                    this.vy = (Math.random() * 1.5) - 0.75;
-                    this.size = Math.random() * 4 + 3;
-                    this.friction = 0.92;
-                    this.life = 1.0;
-                }
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy + (Math.random() * 1.0 - 0.5);
-                this.vx *= this.friction;
-                this.vy *= this.friction;
-                const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                if (currentSpeed < 0.4) {
-                    if (this.size < 25) this.size += 0.4;
-                    this.life -= 0.003;
-                } else {
-                    this.life -= 0.008;
-                }
-            }
-            draw() {
-                if (this.life <= 0) return;
-                const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                let opacity = currentSpeed < 0.4 ? 0.3 : 0.7;
-                opacity *= this.life;
-                ctx.fillStyle = `rgba(52, 136, 188, ${opacity})`;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function animate() {
-            if (!ctx) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (floodIntensity > 0) {
-                const spawnCount = floodIntensity > 2 ? floodIntensity * 6 : floodIntensity * 2;
-
-                // Restored your exact custom coordinates from your snippet
-                const breaches = [
-                    { x: canvas.width * 0.25, y: canvas.height * 0.22 },
-                    { x: canvas.width * 0.25, y: canvas.height * 0.40 },
-                    { x: canvas.width * 0.25, y: canvas.height * 0.85 }
-                ];
-                for (let i = 0; i < spawnCount; i++) {
-                    const breach = breaches[Math.floor(Math.random() * breaches.length)];
-                    particles.push(new WaterParticle(breach.x, breach.y, floodIntensity));
-                }
-            }
-            for (let i = particles.length - 1; i >= 0; i--) {
-                particles[i].update();
-                particles[i].draw();
-                if (particles[i].life <= 0) { particles.splice(i, 1); }
-            }
-            requestAnimationFrame(animate);
-        }
-
-        // --- NEW AUTO-STOP TIMERS ---
-        window.startFlood = function (intensity) {
-            floodIntensity = intensity;
-            resizeCanvas();
-
-            // Clear any existing timer, then set a new one to auto-stop after 8 seconds
-            clearTimeout(floodTimeout);
-            floodTimeout = setTimeout(() => {
-                floodIntensity = 0; // Stops spawning. Particles will naturally fade over the next ~1.5s
-            }, 8000);
-        }
-
-        let thiefTimeout;
-        window.triggerThieves = function () {
-            const container = document.getElementById('thieves-container');
-            if (!container) return;
-
-            // Show the thieves
-            container.style.display = 'block';
-
-            // This forces the CSS animations to restart from the beginning
-            container.style.animation = 'none';
-            container.offsetHeight;
-            container.style.animation = null;
-
-            // Hide them again after 10.5 seconds (gives them enough time to complete the 5s animation paths)
-            clearTimeout(thiefTimeout);
-            thiefTimeout = setTimeout(() => {
-                container.style.display = 'none';
-            }, 10500);
+        function updateUI(state) {
+            document.getElementById('year-val').innerText = state.year;
+            document.getElementById('season-val').innerText = state.season;
+            document.getElementById('villagers-val').innerText = state.population;
+            document.getElementById('granary-val').innerText = state.storedRice || 0;
         }
 
         function initApp() {
             canvas = document.getElementById('floodCanvas');
-            if (canvas) {
-                ctx = canvas.getContext('2d');
-                window.addEventListener('resize', resizeCanvas);
-                resizeCanvas();
-                animate();
-            }
+            ctx = canvas.getContext('2d');
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width; canvas.height = rect.height;
 
             const urlParams = new URLSearchParams(window.location.search);
-            let stateParam = urlParams.get('state');
+            const state = JSON.parse(decodeURIComponent(urlParams.get('state') || '{}'));
+            const anim = urlParams.get('anim');
+            const intensity = urlParams.get('intensity');
 
-            if (!stateParam) {
-                stateParam = encodeURIComponent(JSON.stringify({
-                    year: 2,
-                    season: 1,
-                    population: 100,
-                    storedRice: 0,
-                    hasThieves: false // Let's keep them hidden by default for safety
-                }));
-            }
+            updateUI(state);
 
-            if (stateParam) {
-                try {
-                    const state = JSON.parse(decodeURIComponent(stateParam));
-
-                    const yearEl = document.getElementById('year-val');
-                    const seasonEl = document.getElementById('season-val');
-                    const villagersEl = document.getElementById('villagers-val');
-
-                    if (yearEl) yearEl.innerText = state.year !== undefined ? state.year : '-';
-                    if (seasonEl) seasonEl.innerText = state.season !== undefined ? state.season : '-';
-                    if (villagersEl) villagersEl.innerText = state.population !== undefined ? state.population : 100;
-
-                    const rice = Number(state.storedRice) || 0;
-                    const granaryContainer = document.getElementById('granary-val-container');
-                    const granaryVal = document.getElementById('granary-val');
-                    const granaryIcon = document.getElementById('granary-icon');
-
-                    if (granaryContainer && granaryVal) {
-                        if (rice > 0) {
-                            granaryVal.innerText = rice;
-                            granaryContainer.classList.remove('empty');
-                            granaryContainer.classList.add('filled');
-                            if (granaryIcon) granaryIcon.setAttribute('stroke', '#1a1a1a');
-                        } else {
-                            granaryVal.innerText = "EMPTY";
-                            granaryContainer.classList.add('empty');
-                            granaryContainer.classList.remove('filled');
-                            if (granaryIcon) granaryIcon.setAttribute('stroke', '#8b0000');
-                        }
-                    }
-
-                    // --- INITIALIZE THIEVES BASED ON STATE ---
-                    if (state.hasThieves) {
-                        triggerThieves();
-                    } else {
-                        const container = document.getElementById('thieves-container');
-                        if (container) container.style.display = 'none';
-                    }
-
-                    // --- INITIALIZE FLOODS BASED ON STATE ---
-                    if (state.floodIntensity) {
-                        startFlood(state.floodIntensity);
-                    }
-
-                } catch (e) {
-                    console.error("Error parsing state", e);
+            // Trigger animations ONLY if in the small chat bubble (Preview Mode)
+            const isPreview = window.innerHeight < 600;
+            if (isPreview) {
+                if (anim === 'raid') {
+                    document.getElementById('thieves-container').style.display = 'block';
+                }
+                if (anim === 'flood') {
+                    floodIntensity = parseInt(intensity) || 2;
+                    animateFlood();
                 }
             }
         }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initApp);
-        } else {
-            initApp();
+        // Simplified flood loop for preview performance
+        function animateFlood() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "rgba(52, 136, 188, 0.6)";
+            ctx.beginPath();
+            ctx.arc(canvas.width * 0.3, canvas.height * 0.4, 50 * floodIntensity, 0, Math.PI * 2);
+            ctx.fill();
+            if (floodIntensity > 0) requestAnimationFrame(animateFlood);
         }
+
+        window.onload = initApp;
     </script>
 </body>
-
 </html>

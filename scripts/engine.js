@@ -6,7 +6,6 @@ window['ai_edge_gallery_get_result'] = async (data) => {
         if (parsedData.action === "load") {
             const savedData = localStorage.getItem('riverKingdomSave');
             if (savedData) {
-                // Load existing game
                 const loadedState = JSON.parse(savedData);
                 const stateString = encodeURIComponent(JSON.stringify(loadedState));
 
@@ -15,7 +14,6 @@ window['ai_edge_gallery_get_result'] = async (data) => {
                     webview: { url: `webview.html?state=${stateString}`, aspectRatio: 0.56 }
                 });
             } else {
-                // Auto-start new game if no save exists
                 const initState = {
                     year: 1, season: 1, population: 100, storedRice: 1200, plantedRice: 0,
                     availableActions: "Roles available: dyke workers, field workers, village guards, and sacks of rice to plant."
@@ -24,13 +22,13 @@ window['ai_edge_gallery_get_result'] = async (data) => {
                 const stateString = encodeURIComponent(JSON.stringify(initState));
                 
                 return JSON.stringify({
-                    result: `Your father, the Emperor, has entrusted you with a new village. I am eager to witness your strategic genius, my Prince.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: ${initState.availableActions}`,
+                    result: `Your father, the Emperor, has entrusted you with a new village. I am eager to witness your strategic genius, my Prince.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: Roles available: dyke workers, field workers, village guards, and sacks of rice to plant.`,
                     webview: { url: `webview.html?state=${stateString}`, aspectRatio: 0.56 }
                 });
             }
         }
 
-        // --- 2. EXPLICIT NEW GAME (Overwrites Save) ---
+        // --- 2. EXPLICIT NEW GAME ---
         if (parsedData.action === "init") {
             const initState = {
                 year: 1, season: 1, population: 100, storedRice: 1200, plantedRice: 0,
@@ -40,42 +38,39 @@ window['ai_edge_gallery_get_result'] = async (data) => {
             const stateString = encodeURIComponent(JSON.stringify(initState));
             
             return JSON.stringify({
-                result: `A fresh village has been established for you by the Emperor. I await your flawless leadership.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: ${initState.availableActions}`,
+                result: `A fresh village has been established for you by the Emperor. I await your flawless leadership.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: Roles available: dyke workers, field workers, village guards, and sacks of rice to plant.`,
                 webview: { url: `webview.html?state=${stateString}`, aspectRatio: 0.56 }
             });
         }
 
         // --- 3. NORMAL TURN PROCESSING ---
-        
-        // Retrieve the actual, uncorrupted game state from memory
         const savedData = localStorage.getItem('riverKingdomSave');
         const currentState = savedData ? JSON.parse(savedData) : {};
-        
-        // Merge the true state with the LLM's incoming orders
         const combinedData = { ...currentState, ...parsedData };
-
-        // Process the season using the combined data
         const nextTurn = processSeason(combinedData);
         
-        // SAVE OR WIPE THE GAME STATE
-        // As long as the turn didn't fail from invalid orders...
         if (!nextTurn.turnReport.includes("INVALID ORDERS")) {
-            // If the population hit 0, burn the save file!
             if (nextTurn.nextStateForLLM.gameOver) {
                 localStorage.removeItem('riverKingdomSave');
             } else {
-                // Otherwise, save normally
                 localStorage.setItem('riverKingdomSave', JSON.stringify(nextTurn.nextStateForLLM));
             }
         }
 
+        // Detect animations for the URL
+        let animParam = "";
+        if (nextTurn.nextStateForLLM.floodIntensity > 0) animParam = `&anim=flood&intensity=${nextTurn.nextStateForLLM.floodIntensity}`;
+        if (nextTurn.nextStateForLLM.hasThieves) animParam = `&anim=raid`;
+
         const stateString = encodeURIComponent(JSON.stringify(nextTurn.stateForUI));
 
-        // Return clean JSON without the hidden state baggage, but WITH the new stats for the LLM to read
+        // Delay to allow the webview animation to play out in the chat bubble
+        await new Promise(resolve => setTimeout(resolve, 4500));
+
         return JSON.stringify({
             result: `${nextTurn.turnReport}\n\nDATA FOR VIZIER:\nYear: ${nextTurn.nextStateForLLM.year} | Season: ${nextTurn.nextStateForLLM.season} | Population: ${nextTurn.nextStateForLLM.population} | Stored Rice: ${nextTurn.nextStateForLLM.storedRice}\nAvailable Actions: ${nextTurn.nextStateForLLM.availableActions}`,
             webview: {
-                url: `webview.html?state=${stateString}`,
+                url: `webview.html?state=${stateString}${animParam}`,
                 aspectRatio: 0.56
             }
         });
