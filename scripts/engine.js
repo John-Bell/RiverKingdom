@@ -41,7 +41,7 @@ window['ai_edge_gallery_get_result'] = async (data) => {
             
             return JSON.stringify({
                 result: `A fresh village has been established for you by the Emperor. I await your flawless leadership.\n\nDATA FOR VIZIER:\nYear: 1 | Season: 1 | Population: 100 | Stored Rice: 1200\nAvailable Actions: ${initState.availableActions}`,
-                webview: { url: `assets/webview.html?state=${stateString}`, aspectRatio: 1.333 }
+                webview: { url: `webview.html?state=${stateString}`, aspectRatio: 0.56 }
             });
         }
 
