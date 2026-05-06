@@ -480,13 +480,6 @@
         </div>
     </div>
 
-    <div class="test-controls">
-        <button onclick="startFlood(2)">Minor Flood</button>
-        <button onclick="startFlood(8)">Catastrophic Flood</button>
-        <!-- The manual trigger for testing the 5-second thief raid -->
-        <button onclick="triggerThieves()" style="background: #8e44ad;">Trigger Thieves</button>
-    </div>
-
     <script>
         // --- FLOOD PHYSICS ENGINE ---
         let canvas;
@@ -581,11 +574,11 @@
             floodIntensity = intensity;
             resizeCanvas();
 
-            // Clear any existing timer, then set a new one to auto-stop after 4 seconds
+            // Clear any existing timer, then set a new one to auto-stop after 8 seconds
             clearTimeout(floodTimeout);
             floodTimeout = setTimeout(() => {
                 floodIntensity = 0; // Stops spawning. Particles will naturally fade over the next ~1.5s
-            }, 4000);
+            }, 8000);
         }
 
         let thiefTimeout;
@@ -601,11 +594,11 @@
             container.offsetHeight;
             container.style.animation = null;
 
-            // Hide them again after 5.5 seconds (gives them enough time to complete the 5s animation paths)
+            // Hide them again after 10.5 seconds (gives them enough time to complete the 5s animation paths)
             clearTimeout(thiefTimeout);
             thiefTimeout = setTimeout(() => {
                 container.style.display = 'none';
-            }, 5500);
+            }, 10500);
         }
 
         function initApp() {
