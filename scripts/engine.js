@@ -71,11 +71,19 @@ window['ai_edge_gallery_get_result'] = async (data) => {
 
         const stateString = encodeURIComponent(JSON.stringify(nextTurn.stateForUI));
 
+let animParam = "";
+if (nextTurn.nextStateForLLM.floodIntensity > 0) {
+    animParam = `&anim=flood&intensity=${nextTurn.nextStateForLLM.floodIntensity}`;
+} else if (nextTurn.nextStateForLLM.hasThieves) {
+    animParam = `&anim=raid`;
+}
+
+
         // Return clean JSON without the hidden state baggage, but WITH the new stats for the LLM to read
         return JSON.stringify({
             result: `${nextTurn.turnReport}\n\nDATA FOR VIZIER:\nYear: ${nextTurn.nextStateForLLM.year} | Season: ${nextTurn.nextStateForLLM.season} | Population: ${nextTurn.nextStateForLLM.population} | Stored Rice: ${nextTurn.nextStateForLLM.storedRice}\nAvailable Actions: ${nextTurn.nextStateForLLM.availableActions}`,
             webview: {
-                url: `webview.html?state=${stateString}`,
+                url: `webview.html?state=${stateString}${animParam}`,
                 aspectRatio: 0.56
             }
         });

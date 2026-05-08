@@ -540,6 +540,8 @@
 
             const urlParams = new URLSearchParams(window.location.search);
             let stateParam = urlParams.get('state');
+            let animParam = urlParams.get('anim');
+            let intensityParam = urlParams.get('intensity');
 
             if (!stateParam) {
                 stateParam = encodeURIComponent(JSON.stringify({
@@ -590,9 +592,9 @@
                         if (container) container.style.display = 'none';
                     }
 
-                    // --- INITIALIZE FLOODS BASED ON STATE ---
-                    if (state.floodIntensity) {
-                        startFlood(state.floodIntensity);
+                                        // --- INITIALIZE FLOODS BASED ON STATE ---
+                    if (state.floodIntensity || animParam === 'flood') {
+                        startFlood(state.floodIntensity || Number(intensityParam) || 1);
                     }
 
                 } catch (e) {

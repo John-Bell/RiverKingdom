@@ -126,6 +126,8 @@ function executeHazards(state, orders) {
         if (defenseRatio < 1) {
             let damageMultiplier = 1 - defenseRatio; 
             
+                state.floodIntensity = Math.ceil(damageMultiplier * 4); 
+            
             let drowned = Math.floor(state.population * GAME_CONFIG.FLOOD_MAX_POP_LOSS_PCT * damageMultiplier);
             let washedAway = Math.floor(state.plantedRice * GAME_CONFIG.FLOOD_MAX_SEED_LOSS_PCT * damageMultiplier);
 
