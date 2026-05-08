@@ -203,30 +203,32 @@
             right: var(--start-x, 0px);
         }
 
-        /* Speed up the raid loops to 4-5 seconds so they finish before disappearing */
-        .thief-1 {
-            --start-y: 400px;
-            --start-x: 90px;
-            animation: walk-cycle 0.6s steps(4) infinite, raid-village-1 12s linear infinite;
-        }
+/* --- UPDATED THIEF POSITIONS (PERCENTAGE BASED) --- */
+.thief-1 {
+    --start-y: 65%; 
+    --start-x: 20%;
+    /* Changed to 'forwards' so they don't loop forever after the turn ends */
+    animation: walk-cycle 0.6s steps(4) infinite, raid-village-1 8s linear forwards; 
+}
 
-        .thief-2 {
-            --start-y: 390px;
-            --start-x: 30px;
-            animation: walk-cycle 0.5s steps(4) infinite, raid-village-2 5s linear infinite;
-        }
+.thief-2 {
+    --start-y: 55%; 
+    --start-x: 10%;
+    animation: walk-cycle 0.5s steps(4) infinite, raid-village-2 6s linear forwards;
+}
 
-        .thief-3 {
-            --start-y: 350px;
-            --start-x: 60px;
-            animation: walk-cycle 0.5s steps(4) infinite, raid-village-3 10s linear infinite;
-        }
+.thief-3 {
+    --start-y: 45%; 
+    --start-x: 15%;
+    animation: walk-cycle 0.5s steps(4) infinite, raid-village-3 10s linear forwards;
+}
 
-        .thief-4 {
-            --start-y: 300px;
-            --start-x: 85px;
-            animation: walk-cycle 0.8s steps(4) infinite, raid-village-4 18s linear infinite;
-        }
+.thief-4 {
+    --start-y: 35%; 
+    --start-x: 25%;
+    animation: walk-cycle 0.8s steps(4) infinite, raid-village-4 12s linear forwards;
+}
+
 
         @keyframes walk-cycle {
             0% {
@@ -238,93 +240,38 @@
             }
         }
 
-        @keyframes raid-village-1 {
-            0% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
 
-            45% {
-                transform: translate(-90px, 20px) scaleX(-1);
-            }
+@keyframes raid-village-1 {
+    0% { transform: translate(0, 0) scaleX(-1); }
+    45% { transform: translate(-80%, 10%) scaleX(-1); } /* Relative movement */
+    50% { transform: translate(-80%, 10%) scaleX(1); }
+    95% { transform: translate(0, 0) scaleX(1); }
+    100% { transform: translate(0, 0) scaleX(-1); }
+}
 
-            50% {
-                transform: translate(-90px, 20px) scaleX(1);
-            }
+@keyframes raid-village-2 {
+    0% { transform: translate(0, 0) scaleX(-1); }
+    40% { transform: translate(-70%, 5%) scaleX(-1); }
+    55% { transform: translate(-70%, 5%) scaleX(1); }
+    100% { transform: translate(0, 0) scaleX(-1); }
+}
 
-            95% {
-                transform: translate(0px, 0px) scaleX(1);
-            }
+@keyframes raid-village-3 {
+    0% { transform: translate(0, 0) scaleX(-1); }
+    48% { transform: translate(-75%, 15%) scaleX(-1); } /* Slightly deeper into the fields */
+    52% { transform: translate(-75%, 15%) scaleX(1); }
+    98% { transform: translate(0, 0) scaleX(1); }
+    100% { transform: translate(0, 0) scaleX(-1); }
+}
 
-            100% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-        }
+@keyframes raid-village-4 {
+    0% { transform: translate(0, 0) scaleX(-1); }
+    42% { transform: translate(-85%, 8%) scaleX(-1); } /* Longest dash, shallowest vertical drop */
+    58% { transform: translate(-85%, 8%) scaleX(1); }
+    92% { transform: translate(0, 0) scaleX(1); }
+    100% { transform: translate(0, 0) scaleX(-1); }
+}
 
-        @keyframes raid-village-2 {
-            0% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-
-            40% {
-                transform: translate(-80px, 10px) scaleX(-1);
-            }
-
-            55% {
-                transform: translate(-80px, 10px) scaleX(1);
-            }
-
-            95% {
-                transform: translate(0px, 0px) scaleX(1);
-            }
-
-            100% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-        }
-
-        @keyframes raid-village-3 {
-            0% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-
-            48% {
-                transform: translate(-70px, 30px) scaleX(-1);
-            }
-
-            52% {
-                transform: translate(-70px, 30px) scaleX(1);
-            }
-
-            98% {
-                transform: translate(0px, 0px) scaleX(1);
-            }
-
-            100% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-        }
-
-        @keyframes raid-village-4 {
-            0% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-
-            42% {
-                transform: translate(-100px, 0px) scaleX(-1);
-            }
-
-            58% {
-                transform: translate(-100px, 0px) scaleX(1);
-            }
-
-            92% {
-                transform: translate(0px, 0px) scaleX(1);
-            }
-
-            100% {
-                transform: translate(0px, 0px) scaleX(-1);
-            }
-        }
 
         #floodCanvas {
             position: absolute;
