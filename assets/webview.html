@@ -205,18 +205,19 @@
 
 
 /* --- UPDATED THIEF POSITIONS & RAID TARGETS --- */
+/* --- UPDATED THIEF POSITIONS & RAID TARGETS --- */
 .thief-1 {
     --start-y: 65%; 
     --start-x: 20%;
-    --raid-x: -80%; /* How far left they run (relative to sprite size) */
-    --raid-y: 10%;  /* How far down they dip */
+    --raid-x: -25vw; /* Moved from -80% to -25vw to cover screen distance */
+    --raid-y: 10%;  
     animation: walk-cycle 0.6s steps(4) infinite, raid-village-1 8s linear forwards; 
 }
 
 .thief-2 {
     --start-y: 55%; 
     --start-x: 10%;
-    --raid-x: -70%;
+    --raid-x: -28vw;
     --raid-y: 5%;
     animation: walk-cycle 0.5s steps(4) infinite, raid-village-2 6s linear forwards;
 }
@@ -224,7 +225,7 @@
 .thief-3 {
     --start-y: 45%; 
     --start-x: 15%;
-    --raid-x: -75%;
+    --raid-x: -22vw;
     --raid-y: 15%;
     animation: walk-cycle 0.5s steps(4) infinite, raid-village-3 10s linear forwards;
 }
@@ -232,12 +233,19 @@
 .thief-4 {
     --start-y: 35%; 
     --start-x: 25%;
-    --raid-x: -85%;
+    --raid-x: -26vw;
     --raid-y: 8%;
     animation: walk-cycle 0.8s steps(4) infinite, raid-village-4 12s linear forwards;
 }
 
+
 /* --- ANIMATION LOGIC USING VARIABLES --- */
+
+@keyframes walk-cycle {
+    0% { background-position: 0 0; }
+    100% { background-position: 100% 0; }
+}
+
 
 @keyframes raid-village-1 {
     0% { transform: translate(0, 0) scaleX(-1); }
